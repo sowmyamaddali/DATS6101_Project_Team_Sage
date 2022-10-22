@@ -49,10 +49,20 @@ paste("The NA's in the dataset is:",sum(is.na(stroke_df)))
 
 ```{r}
 
-df<-table(dataset$stroke)
-barplot(df,main='Distribution of Target Variable (Stroke)',col='Red')
-
+df<-table(stroke_df$stroke)
+barplot(df,main='Distribution of Target Variable (Stroke)',col=c('green','red'))
 ```
 
 
 So from the plot, we can see that the number of observations of 0 is greater than the number of observations 1. From this we can see that the dataset is imbalanced.
+
+```{r}
+dat=table(stroke_df$stroke,stroke_df$smoking_status)
+barplot(dat,
+main = "People segregated based on their smoking habbits",
+xlab = "Smoking status",
+ylab = "Number of people",
+col = c("Green","red"),
+beside = TRUE
+)
+```
