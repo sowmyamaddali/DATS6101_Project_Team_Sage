@@ -50,7 +50,8 @@ paste("The NA's in the dataset is:",sum(is.na(stroke_df)))
 ```{r}
 
 df<-table(stroke_df$stroke)
-barplot(df,main='Distribution of Target Variable (Stroke)',col=c('green','red'))
+
+barplot(df,main='Distribution of Target Variable (Stroke)',col=c('orange','red'))
 
 
 ```
@@ -66,7 +67,32 @@ ylab = "Number of people",
 col = c("Green","red"),
 beside = TRUE
 )
+
 ```
+```{r}
+
+#Pie Plot for Rural VS URBAN
+
+library(plotrix)
+df2<-table(stroke_df$Residence_type)
+lab<-c('Rural','Urban')
+pie3D(df2,explode=0.2,main="Pie Chart of Residence_type ",labels = lab)
+
+
+```
+
+```{r}
+
+# Compare residence type with stroke 
+tab1 = table(stroke_df$Residence_type, stroke_df$stroke)
+names(dimnames(tab1))<- c("Work Type", "Stroke")
+tab1
+```
+
+So we can see that people in Rural area with no effect of brain stroke is 2400 and 2461 in Urban
+Rural area people with brain stroke is 114 and 135 in Urban.
+
+
 ```{r}
 
 resi=table(stroke_df$stroke,stroke_df$Residence_type)
