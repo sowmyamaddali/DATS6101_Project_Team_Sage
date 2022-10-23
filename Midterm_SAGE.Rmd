@@ -109,3 +109,150 @@ beside = TRUE
 
 ```
 
+```{r}
+marriage=table(stroke_df$stroke,stroke_df$ever_married)
+barplot(marriage,
+main = "Distribution of Married People affected by Brain Stroke",
+xlab = "Residence_type",
+ylab = "Number of people",
+col = c("blue","yellow"),
+beside = TRUE
+)
+```
+
+```{r}
+marriage_table = table(stroke_df$ever_married, stroke_df$stroke)
+names(dimnames(marriage_table))<- c("Marital status", "Stroke")
+marriage_table
+```
+Here we can see that the data available is that People who are not married and who can get stroke are only 29 and that is 220 for married people.
+
+```{r}
+barplot(height = marriage_table, beside = TRUE)
+```
+Observation with 0 are more greater than 1 so we can say it is an imbalanced data.
+
+*Pie Chart for the ever-marriage feature*
+
+```{r}
+library(plotrix)
+df3 <- table(stroke_df$ever_married) 
+lbls <- c("Yes","No")
+pie3D(df3,labels=lbls,explode=0.12,height = 0.18,
+   main="Pie Chart of marital status ")
+
+
+```
+
+
+```{r}
+#Age is not a categorical and it is the the numerical data type so lets find out the maximum and minimum of the age first.
+summary(stroke_df$age)
+
+```
+*To give it in a pictorial way we can use the box-plot to get all these above values based on the stroke result.*
+```{r}
+library(ggplot2)
+ggplot(stroke_df, aes(y=stroke , x=age, fill=stroke )) + 
+  geom_boxplot()
+
+```
+
+
+
+```{r}
+hist(stroke_df$age, main = "Histogram for Age", xlab = "Age")
+sort(stroke_df$age)
+```
+
+*We can build some buckets to convert these numerical data into a categorical type data so that it is very easy to explore the data.*
+
+```{r}
+dat <- within(stroke_df, {   
+  age.cat <- NA # need to initialize variable
+  age.cat[age < 20] <- "Below 20"
+  age.cat[age >= 20 & age < 40] <- "Below 40"
+  age.cat[age >= 40 &age < 60] <- "Below 60"
+  age.cat[age >= 60 &age < 83] <- "Below 83" # As maximum value is 82
+   } )
+
+#str(dat)
+
+dat$age.cat<- as.factor(dat$age.cat)
+str(dat)
+```
+
+```{r}
+Age_category=table(dat$stroke,dat$age.cat)
+barplot(Age_category,
+main = "Distribution of different age People affected by Brain Stroke",
+xlab = "Age_category",
+ylab = "Number of people",
+col = c("blue","yellow"),
+beside = TRUE
+)
+```
+
+```{r}
+age_table = table(dat$age.cat, dat$stroke)
+names(dimnames(age_table))<- c("Age", "Stroke")
+age_table
+
+```
+*From this distribution we can say that the people with stroke are of more with age 60 and 80 than compared with 20 and 40*
+
+
+
+```{r}
+#Same as Age now Avg_glucose_level is not a categorical and it is the the numerical data type so lets find out the maximum and minimum of the avg_glucose_level first.
+summary(stroke_df$avg_glucose_level)
+
+```
+
+```{r}
+library(ggplot2)
+ggplot(stroke_df, aes(y=stroke , x=avg_glucose_level, fill=stroke )) + 
+  geom_boxplot()
+
+```
+
+```{r}
+hist(stroke_df$avg_glucose_level, main = "Histogram for Glucose level", xlab = "Glucose level")
+sort(stroke_df$avg_glucose_level)
+```
+
+
+```{r}
+dat_gluc <- within(stroke_df, {   
+  avg_gluc.cat <- NA # need to initialize variable
+  avg_gluc.cat[avg_glucose_level < 60] <- "Below 60"
+  avg_gluc.cat[avg_glucose_level >= 60 & avg_glucose_level < 90] <- "Below 90"
+  avg_gluc.cat[avg_glucose_level >= 90 & avg_glucose_level < 140] <- "Below 140"
+  avg_gluc.cat[avg_glucose_level >= 140 & avg_glucose_level < 273] <- "Below 273" 
+   } )
+
+#str(dat)
+
+dat_gluc$avg_gluc.cat<- as.factor(dat_gluc$avg_gluc.cat)
+str(dat_gluc)
+```
+```{r}
+Avg_glucose_category=table(dat_gluc$stroke,dat_gluc$avg_gluc.cat)
+barplot(Avg_glucose_category,
+main = "Distribution of different age People affected by Brain Stroke",
+xlab = "Avg_glucose_category",
+ylab = "Number of people",
+col = c("blue","yellow"),
+beside = TRUE
+)
+```
+```{r}
+avg_gluc_table = table(dat_gluc$avg_gluc.cat, dat_gluc$stroke)
+names(dimnames(avg_gluc_table))<- c("Age", "Stroke")
+avg_gluc_table
+
+```
+*People with Avg_glucose level below 273 to 90 have higher chance of getting stroke.*
+
+
+
