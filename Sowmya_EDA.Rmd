@@ -17,38 +17,49 @@ library(ggplot2)
 
 # Brain Stroke Prediction
 
-```{r, results=TRUE}
-stroke_df <- data.frame(read.csv("healthcare-dataset-stroke-data.csv"))
+```{r}
+loadPkg("corrplot")
+stroke_df = read.csv("healthcare-dataset-stroke-data.csv")
+stroke_df = subset(stroke_df, select = -c(id))
+head(stroke_df)
+
+# Getting the summary of the dataframe
+summary(stroke_df)
+
+
+# Looking at the structure of the Dataframe
 str(stroke_df)
-xkabledplyhead(stroke_df)
-```
-
-```{r, results=TRUE}
-# Getting the summary of the  dataset
-xkablesummary(stroke_df)
-```
-Creating a subset to do my part of EDA which includes the columns hypertension, and heart_disease
-
-```{r results=TRUE}
-stroke_subset <- subset(stroke_df, select=c("hypertension", "heart_disease", "stroke"))
-xkabledplyhead(stroke_subset)
 ```
 
 ```{r}
-tab2 = table(stroke_df$hypertension, stroke_df$stroke)
-names(dimnames(tab2))<- c("Hypertension", "Stroke")
-tab2
+# changing the variables to categorical variables and numerical variables
+stroke_df$gender <- as.factor(stroke_df$gender)
+stroke_df$hypertension <- as.factor(stroke_df$hypertension)
+stroke_df$heart_disease <- as.factor(stroke_df$heart_disease)
+stroke_df$ever_married <- as.factor(stroke_df$ever_married)
+stroke_df$bmi <- as.numeric(stroke_df$bmi)
+stroke_df$stroke<- as.factor(stroke_df$stroke)
+str(stroke_df)
+
+# Finding if there are any NA's in the dataset
+paste("The NA's in the dataset is:",sum(is.na(stroke_df)))
+summary(stroke_df)
 ```
 
 ```{r}
-ggplot(stroke_subset, aes(x = stroke, y = hypertension)) + ggtitle("")+ geom_point()
+# There are 201 NA's in BMI. Replacing those variables with mean of BMI
+stroke_df$bmi[is.na(stroke_df$bmi)] <- mean(stroke_df$bmi,na.rm = TRUE)
+```
+
+```{r}
+ggplot(stroke_df, aes(x = stroke, y = hypertension)) + ggtitle("")+ geom_point()
 ```
 
 ```{r, include=TRUE}
-ht_plot <- ggplot(data = stroke_subset, aes(hypertension, fill=hypertension))+geom_bar()
+ht_plot <- ggplot(data = stroke_df, aes(hypertension, fill=hypertension))+geom_bar()
 ht_plot
 
-hd_plot <- ggplot(data = stroke_subset, aes(heart_disease, fill=heart_disease))+geom_bar()
+hd_plot <- ggplot(data = stroke_df, aes(heart_disease, fill=heart_disease))+geom_bar()
 hd_plot
 ```
 
