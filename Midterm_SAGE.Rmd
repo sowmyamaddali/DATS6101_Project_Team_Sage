@@ -227,6 +227,54 @@ r
 barplot(r,col='gold')
 
 
+
 ```
 SO after using sampling technqiue we can see that there are 134 cases of no stroke and 151 cases of stroke cases.
+
+
+
+```{r}
+#UNDER
+
+un <- ovun.sample(stroke~., data=train, method = "under")$data
+
+u<-table(un$stroke)
+u
+
+
+barplot(u,col='orange')
+
+
+
+```
+
+
+
+
+
+
+
+```{r}
+
+
+#Over sampling
+
+ov <- ovun.sample(stroke~., data=train, method = "over"
+                    )$data
+
+o<-table(ov$stroke)
+o
+barplot(o,col='red')
+
+```
+
+
+From 3 sampling techniques we can see BOTH ( UNDER + OVER ) is better compared to the rest.
+We need to decide which one to take whether 0 or 1 if we focus on 0 then no need of sampling 
+if we focus on achieving 1 BOTH(Under+over) is better when compare to the rest.
+
+
+
+```{r}
+```
 
