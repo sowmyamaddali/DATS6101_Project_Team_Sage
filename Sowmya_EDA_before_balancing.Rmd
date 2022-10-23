@@ -1,8 +1,17 @@
 ---
-title: "Sowmya_EDA"
+title: "Sowmya_EDA - Before balancing the dataset"
 author: "Sowmya"
 date: "`r Sys.Date()`"
-output: html_document
+output:
+  html_document:
+    code_folding: hide
+    number_sections: false
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
 ---
 
 ```{r setup, include=FALSE}
@@ -13,6 +22,7 @@ library(ezids)
 
 # importing ggplot2 for graphs
 library(ggplot2)
+library(gridExtra)
 ```
 
 # Brain Stroke Prediction
@@ -47,19 +57,14 @@ summary(stroke_df)
 ```
 
 ```{r}
-# There are 201 NA's in BMI. Replacing those variables with mean of BMI
-stroke_df$bmi[is.na(stroke_df$bmi)] <- mean(stroke_df$bmi,na.rm = TRUE)
-```
-
-```{r}
-ggplot(stroke_df, aes(x = stroke, y = hypertension)) + ggtitle("")+ geom_point()
+ggplot(stroke_df, aes(x = stroke, y = hypertension)) + ggtitle("Scatter plot for Hypertension vs Stroke")+ geom_point()
 ```
 
 ```{r, include=TRUE}
-ht_plot <- ggplot(data = stroke_df, aes(hypertension, fill=hypertension))+geom_bar()
+ht_plot <- ggplot(data = stroke_df, aes(hypertension, fill=hypertension))+geom_bar()+ ggtitle("Distribution of hypertension")
 ht_plot
 
-hd_plot <- ggplot(data = stroke_df, aes(heart_disease, fill=heart_disease))+geom_bar()
+hd_plot <- ggplot(data = stroke_df, aes(heart_disease, fill=heart_disease))+geom_bar()+ggtitle("Distribution of heart disease")
 hd_plot
 ```
 
