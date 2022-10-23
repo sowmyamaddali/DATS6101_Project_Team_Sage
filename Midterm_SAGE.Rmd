@@ -69,6 +69,11 @@ beside = TRUE
 )
 
 ```
+
+
+
+
+
 ```{r}
 
 #Pie Plot for Rural VS URBAN
@@ -118,6 +123,22 @@ table(train$stroke)
 
 
 ```
+```{r}
+
+
+stroke_df$work_type <- as.numeric(factor(stroke_df$work_type))
+
+head(stroke_df)
+
+
+
+
+```
+
+
+
+
+
 
 ```{r}
 
@@ -138,5 +159,74 @@ ch<-table(stroke_df$Residence_type, stroke_df$stroke)
 chisq.test(stroke_df$Residence_type, stroke_df$stroke)
 
 
+
+
+
+
+ch2<-table(stroke_df$work_type, stroke_df$stroke)  
+
+chisq.test(stroke_df$work_type, stroke_df$stroke)
+
+format.pval(pv =5.398e-10, 
+
+             # digits : number of digits, but after the 0.0
+            digits = 2, 
+
+             # eps = the threshold value above wich the 
+             # function will replace the pvalue by "<0.0xxx"
+            eps = 0.001, 
+
+             # nsmall = how much tails 0 to keep if digits of 
+             # original value < to digits defined
+            nsmall = 3
+            )
+
+
 ```
 Residence_Type is independent to target variable
+
+
+
+```{r}
+
+
+set.seed(123)
+ind <- sample(2, nrow(stroke_df), replace = TRUE, prob = c(0.6, 0.4))
+train <- stroke_df[ind==1,]
+test <- stroke_df[ind==2,]
+
+table(stroke_df$stroke)
+
+```
+
+```{r}
+install.packages("ROSE")
+```
+
+
+
+```{r}
+# UNDER AND OVER SAMPLING - BOTH
+
+library(ROSE)
+
+both <- ovun.sample(stroke~., data=train, method = "both",
+                    p = 0.5,
+                    seed = 222,
+                    N = 285)$data
+
+r<-table(both$stroke)
+r
+
+```
+
+
+```{r}
+
+# UNDER AND OVER SAMPLING TECHNIQUE
+barplot(r,col='gold')
+
+
+```
+SO after using sampling technqiue we can see that there are 134 cases of no stroke and 151 cases of stroke cases.
+
