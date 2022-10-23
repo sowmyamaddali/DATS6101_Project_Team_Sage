@@ -1,0 +1,65 @@
+---
+title: "Sowmya_EDA"
+author: "Sowmya"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# importing the ezids package
+library(ezids)
+
+# importing ggplot2 for graphs
+library(ggplot2)
+```
+
+# Brain Stroke Prediction
+
+```{r, results=TRUE}
+stroke_df <- data.frame(read.csv("healthcare-dataset-stroke-data.csv"))
+str(stroke_df)
+xkabledplyhead(stroke_df)
+```
+
+```{r, results=TRUE}
+# Getting the summary of the  dataset
+xkablesummary(stroke_df)
+```
+Creating a subset to do my part of EDA which includes the columns hypertension, and heart_disease
+
+```{r results=TRUE}
+stroke_subset <- subset(stroke_df, select=c("hypertension", "heart_disease", "stroke"))
+xkabledplyhead(stroke_subset)
+```
+
+```{r}
+tab2 = table(stroke_df$hypertension, stroke_df$stroke)
+names(dimnames(tab2))<- c("Hypertension", "Stroke")
+tab2
+```
+
+```{r}
+ggplot(stroke_subset, aes(x = stroke, y = hypertension)) + ggtitle("")+ geom_point()
+```
+
+```{r, include=TRUE}
+ht_plot <- ggplot(data = stroke_subset, aes(hypertension, fill=hypertension))+geom_bar()
+ht_plot
+
+hd_plot <- ggplot(data = stroke_subset, aes(heart_disease, fill=heart_disease))+geom_bar()
+hd_plot
+```
+
+
+
+
+
+
+
+
+
+
+
+
