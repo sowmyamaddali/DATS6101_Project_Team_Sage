@@ -104,8 +104,39 @@ col = c("Red","Orange"),
 beside = TRUE
 )
 
+```
 
+
+```{r}
+
+set.seed(123)
+ind <- sample(2, nrow(stroke_df), replace = TRUE, prob = c(0.6, 0.4))
+train <- stroke_df[ind==1,]
+test <- stroke_df[ind==2,]
+
+table(train$stroke)
 
 
 ```
 
+```{r}
+
+
+stroke_df$Residence_type <- as.numeric(factor(stroke_df$Residence_type))
+
+head(stroke_df)
+
+
+```
+```{r}
+
+# Checking Test of Independence between Residence_type and Target Variable Stroke
+#alpha =0.05
+
+ch<-table(stroke_df$Residence_type, stroke_df$stroke)  
+
+chisq.test(stroke_df$Residence_type, stroke_df$stroke)
+
+
+```
+Residence_Type is independent to target variable
