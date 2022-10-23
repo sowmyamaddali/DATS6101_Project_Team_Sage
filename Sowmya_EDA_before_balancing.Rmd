@@ -67,15 +67,5 @@ ht_plot
 hd_plot <- ggplot(data = stroke_df, aes(heart_disease, fill=heart_disease))+geom_bar()+ggtitle("Distribution of heart disease")
 hd_plot
 ```
-
-
-
-
-
-
-
-
-
-
-
-
+The graphs look disproportionate due to the dataset being imbalanced. 
+Better evaluation for the variables of hypertension, and heart disease against stroke will be done after balancing the dataset.
