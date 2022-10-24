@@ -255,4 +255,10 @@ avg_gluc_table
 *People with Avg_glucose level below 273 to 90 have higher chance of getting stroke.*
 
 
+*Trying to find some relation between the features.*
+```{r}
+library(ggplot2)
+ggplot(stroke_df, aes(x=ever_married, y=age, fill=stroke )) + 
+  geom_boxplot()
+```
 
