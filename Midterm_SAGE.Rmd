@@ -1,0 +1,104 @@
+---
+title: "Brain Stroke Prediction"
+author: "Team Sage"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    code_folding: hide
+    number_sections: false
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+---
+
+
+Brain Stroke:
+
+A stroke is a medical condition in which poor blood flow to the brain causes cell death. According to the World Health Organization (WHO) stroke is the 2nd leading cause of death globally, responsible for approximately 11% of total deaths.
+
+Dataset Link: https://www.kaggle.com/datasets/fedesoriano/stroke-prediction-dataset
+```{r}
+library(ggplot2)
+library(corrplot)
+library(ROSE)
+```
+
+```{r}
+
+stroke_df = read.csv("healthcare-dataset-stroke-data.csv")
+stroke_df = subset(stroke_df, select = -c(id))
+head(stroke_df)
+
+# Getting the summary of the dataframe
+summary(stroke_df)
+
+
+# Looking at the structure of the Dataframe
+str(stroke_df)
+
+```
+```{r}
+# changing the variables to categorical variables and numerical variables
+stroke_df$gender = as.factor(stroke_df$gender)
+stroke_df$hypertension = as.factor(stroke_df$hypertension)
+stroke_df$heart_disease = as.factor(stroke_df$heart_disease)
+stroke_df$ever_married = as.factor(stroke_df$ever_married)
+stroke_df$bmi = as.numeric(stroke_df$bmi)
+stroke_df$stroke = as.factor(stroke_df$stroke)
+str(stroke_df)
+
+# Finding if there are any NA's in the dataset
+paste("The NA's in the dataset is:",sum(is.na(stroke_df)))
+summary(stroke_df)
+
+```
+```{r}
+# There are 201 NA's in BMI. Replacing those variables with mean of BMI
+stroke_df$bmi[is.na(stroke_df$bmi)] = mean(stroke_df$bmi,na.rm = TRUE)
+# Finding if there are any NA's after imputation of null values
+paste("The NA's in the dataset is:",sum(is.na(stroke_df)))
+```
+
+```{r}
+
+ggplot(stroke_df, aes(x=stroke,fill=stroke))+geom_bar()+ggtitle("Distribution of Target varibale(Stroke)")+ theme_bw() +  theme()+ xlab("Stroke") + ylab("Count of people")
+```
+
+
+Since the Data is imbalanced we are using sampling techniques such as under sampling and over sampling. In this case we used both under and over sampling 
+```{r}
+# we are first splitting the data into test and train 
+set.seed(123)
+ind <- sample(2, nrow(stroke_df), replace = TRUE, prob = c(0.7, 0.3))
+train <- stroke_df[ind==1,]
+test <- stroke_df[ind==2,]
+
+
+# In the train data we are using under and oversampling to address the class imbalance problem
+
+both <- ovun.sample(stroke~., data=train, method = "both",
+                    p = 0.5,
+                    seed = 222,
+                    N = 5110)$data
+r<-table(both$stroke)
+paste("Seeing if the class imabalance is fixed")
+r
+# copying this data frame to a new dataframe
+stroke_df_train_sample = both
+str(stroke_df_train_sample)
+# Looking at the Information in the dataset after sampling 
+summary(both)
+
+```
+```{r}
+
+ggplot(stroke_df_train_sample, aes(x=stroke,fill=stroke))+geom_bar()+ggtitle("Distribution of Target varibale after sampling")+ theme_bw() +  theme()+ xlab("Stroke") + ylab("Count of people")
+
+```
+
+
+
+
