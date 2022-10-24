@@ -233,8 +233,7 @@ dat_gluc <- within(stroke_df, {
 
 #str(dat)
 
-dat_gluc$avg_gluc.cat<- as.factor(dat_gluc$avg_gluc.cat)
-str(dat_gluc)
+dat_gluc$avg_gluc.cat <- factor(dat_gluc$avg_gluc.cat, levels= c("Below 60", "Below 90", "Below 140", "Below 273"))
 ```
 ```{r}
 Avg_glucose_category=table(dat_gluc$stroke,dat_gluc$avg_gluc.cat)
@@ -261,4 +260,34 @@ library(ggplot2)
 ggplot(stroke_df, aes(x=ever_married, y=age, fill=stroke )) + 
   geom_boxplot()
 ```
+``` {r}
+
+#Comparing age with different buckets with respecct to stroke and viewing it on a boxplot
+ggplot(dat, aes(fill = stroke, y = age, x = age.cat)) + geom_boxplot()
+
+#using the boxplot to see the stroke for different age people with respecc to their glucose level.
+ggplot(dat_gluc, aes(fill=stroke, y = age, x = avg_gluc.cat))+ geom_boxplot()
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
