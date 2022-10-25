@@ -298,7 +298,12 @@ ctest
 ```
 *As p value is 1.639e-14 then we can say ever_married feature is dependent as p value is < 0.05*
 
+```{r}
+# calulating the chi-square test for the age and stroke column to determine if age is a dependent or independent variable.
 
+ctest1 = chisq.test(as.factor(stroke_df$age), stroke_df$stroke)
+ctest1
+```
 
 
 
