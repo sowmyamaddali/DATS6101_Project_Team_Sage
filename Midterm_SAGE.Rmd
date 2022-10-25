@@ -269,7 +269,11 @@ ggplot(dat, aes(fill = stroke, y = age, x = age.cat)) + geom_boxplot()
 ggplot(dat_gluc, aes(fill=stroke, y = age, x = avg_gluc.cat))+ geom_boxplot()
 
 ```
+```{r}
+#comparing stroke with different age people based on their smoking habit.
+ggplot(dat, aes(x= stroke, fill = smoking_status, y = age)) + geom_boxplot()
 
+```
 
 
 
