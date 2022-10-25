@@ -290,7 +290,13 @@ fig
 ```
 
 
+```{r}
+#calculating the chi-square test for the ever_married column and the target coulmn that is stroke
 
+ctest = chisq.test(as.factor(stroke_df$ever_married), stroke_df$stroke)
+ctest
+```
+*As p value is 1.639e-14 then we can say ever_married feature is dependent as p value is < 0.05*
 
 
 
