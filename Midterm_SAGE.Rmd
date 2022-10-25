@@ -236,6 +236,8 @@ dat_gluc <- within(stroke_df, {
 
 dat_gluc$avg_gluc.cat <- factor(dat_gluc$avg_gluc.cat, levels= c("Below 60", "Below 90", "Below 140", "Below 273"))
 ```
+
+
 ```{r}
 Avg_glucose_category=table(dat_gluc$stroke,dat_gluc$avg_gluc.cat)
 barplot(Avg_glucose_category,
