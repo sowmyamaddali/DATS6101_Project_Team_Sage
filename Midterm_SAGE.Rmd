@@ -252,16 +252,19 @@ format.pval(pv =2.085e-06,
             )
 
 
-ch2<-table(stroke_df$work_type, stroke_df$stroke)  
+ch2<-table(stroke_df$hypertension, stroke_df$stroke)  
 
-chisq.test(stroke_df$work_type, stroke_df$stroke)
+chisq.test(stroke_df$hypertension, stroke_df$stroke)
 
-format.pval(pv =5.398e-10, 
+format.pval(pv =2.2e-16, 
 
              # digits : number of digits, but after the 0.0
             digits = 2, 
 
-             # 
+             # eps = the threshold value above wich the 
+             # function will replace the pvalue by "<0.0xxx"
+            eps = 0.001, 
+
              # nsmall = how much tails 0 to keep if digits of 
              # original value < to digits defined
             nsmall = 3
@@ -271,7 +274,7 @@ format.pval(pv =5.398e-10,
 ```
 Residence_Type is independent to target variable
 
-
+Smoking status is
 
 ```{r}
 
