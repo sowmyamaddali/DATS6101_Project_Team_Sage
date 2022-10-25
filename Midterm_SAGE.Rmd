@@ -84,6 +84,7 @@ stroke_df_train_sample = both
 str(stroke_df_train_sample)
 # Looking at the Information in the dataset after sampling 
 summary(both)
+stroke_df
 ```
 ```{r}
 ggplot(stroke_df, aes(x=stroke,fill=stroke))+geom_bar()+ggtitle("Distribution of Target varibale after sampling")+ theme_bw() +  theme()+ xlab("Stroke") + ylab("Count of people")
@@ -95,6 +96,9 @@ ggplot(stroke_df, aes(x=smoking_status,fill=stroke))+geom_bar(position = "dodge"
 ```
 
 ```{r}
+df = subset(stroke_df, stroke_df$work_type == "Private" | stroke_df$work_type == "Self-employed" )
+df
+
 # Count of Males and Females in the Dataset
 ggplot(stroke_df, aes(x=gender,fill=gender))+geom_bar()+ggtitle("Count of Male and Female in the Dataset")+ theme_bw() +
   theme()+ xlab("Gender") + ylab("Count of people")
@@ -102,7 +106,10 @@ ggplot(stroke_df, aes(x=gender,fill=gender))+geom_bar()+ggtitle("Count of Male a
 ggplot(stroke_df,aes(x=work_type, fill=stroke))+geom_bar(position = "dodge")+ggtitle("Work Type Vs Stroke")+ theme_bw() +
   theme()+ xlab("Work Type") + ylab("Count of people who had a stroke")
 # Seeing if Smoking status causes stroke
-ggplot(stroke_df,aes(x=work_type, fill= smoking_status))+geom_bar(position = "dodge")+ggtitle("Smoking habbits in different work type")+ theme_bw() + theme()+ xlab("Work Type") + ylab("Count of people ")
+ggplot(stroke_df,aes(x=work_type, fill= smoking_status))+geom_bar(position = "dodge")+ggtitle("Smoking habbits in different work types")+ theme_bw() + theme()+ xlab("Work Type") + ylab("Count of people ")
+
+#ggplot(df,aes(x=work_type, fill=stroke))+geom_bar(position = "dodge")+ggtitle("Work Type Vs Stroke")+ theme_bw() +
+#  theme()+ xlab("Work Type") + ylab("Count of people who had a stroke")
 ```
 
 ```{r}
@@ -110,8 +117,10 @@ ggplot(stroke_df,aes(x=work_type, fill= smoking_status))+geom_bar(position = "do
 ggplot( stroke_df,aes(x=bmi)) + geom_density(fill="#69b3a2", color="#e9ecef", alpha=0.8)+ theme_bw() + theme()+ ggtitle("BMI distribution")
 # BMI vs stroke 
 ggplot(stroke_df, aes(x=bmi, fill=stroke)) + geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity')+ theme_bw() + theme()
+
 ggplot(stroke_df, aes(x=avg_glucose_level)) +  geom_density(fill="#69b3a2", color="#e9ecef", alpha=0.8)+ theme_bw() + theme()
 ```
+
 ```{r}
 # checking if any variables are related
 stroke_numeric = subset(stroke_df, select = c(age,avg_glucose_level,bmi))
@@ -123,18 +132,31 @@ corrplot(corr_matrix, method = "number", type = "upper")
 ```{r}
 stroke_1 = subset(stroke_df, stroke == 1)
 stroke_0 = subset(stroke_df, stroke == 0)
+
+
+
 # how bmi and age is stroke in people 
 ggplot(stroke_1, aes(x=bmi, y=age, color=stroke))+geom_point(size=3)
-ggplot(stroke_0, aes(x=bmi, y=age, color=stroke))+geom_point(size=3)
+#ggplot(stroke_0, aes(x=bmi, y=age, color=stroke))+geom_point(size=3)
 ggplot(stroke_1, aes(x=bmi, y=age, color=stroke))+geom_boxplot()
 ggplot(stroke_0, aes(x=bmi, y=age, color=stroke))+geom_boxplot()
 ggplot(stroke_1, aes(x=age, y=bmi, color=stroke))+geom_boxplot()
 ggplot(stroke_0, aes(x=age, y=bmi, color=stroke))+geom_boxplot()
 ggplot(stroke_1, aes(x=age, y=avg_glucose_level, color=stroke))+geom_boxplot()
 ggplot(stroke_0, aes(x=age, y=avg_glucose_level, color=stroke))+geom_boxplot()
+
+
 # we can see 25 % to 75 % who get stroke are from age 58 - 78 . the higher the age the chances of getting a stroke is more
 # we can see become who have bmi from 27.5 to 32.5 have higher chances of stroke
 
+```
+```{r}
+stroke_1_female = subset(stroke_df, stroke == 1 & gender == "Female")
+stroke_1_male = subset(stroke_df, stroke == 1 & gender == "Male")
+
+ggplot(stroke_1,aes(x=work_type, fill= smoking_status))+geom_bar(position = "dodge")+ggtitle("Distribution of people who had a stroke based on their smoking habits(irrelevant of gender)")+ theme_bw() + theme()+ xlab("Work Type") + ylab("Count of people ")
+ggplot(stroke_1_female,aes(x=work_type, fill= smoking_status))+geom_bar(position = "dodge")+ggtitle("Distribution of females who had a stroke based on their smoking habits")+ theme_bw() + theme()+ xlab("Work Type") + ylab("Count of people ")
+ggplot(stroke_1_male,aes(x=work_type, fill= smoking_status))+geom_bar(position = "dodge")+ggtitle("Distribution of males who had a stroke based on their smoking habits")+ theme_bw() + theme()+ xlab("Work Type") + ylab("Count of people ")
 ```
 categories are encoded as:
 
@@ -153,28 +175,30 @@ dat <- within(stroke_df, {
   bmi.cat[bmi >= 25 & bmi < 30] <- "overweight"
   bmi.cat[bmi >= 30 & bmi < 40] <- "obesity"
   bmi.cat[bmi >=40] <- "severe obesity" 
-   avg_gluc.cat <- NA # need to initialize variable
+  avg_gluc.cat <- NA # need to initialize variable
   avg_gluc.cat[avg_glucose_level < 60] <- "Below 60"
-  avg_gluc.cat[avg_glucose_level >= 60 & avg_glucose_level < 90] <- "Below 90"
-  avg_gluc.cat[avg_glucose_level >= 90 & avg_glucose_level < 140] <- "Below 140"
-  avg_gluc.cat[avg_glucose_level >= 140 & avg_glucose_level < 273] <- "Below 273" 
+  avg_gluc.cat[avg_glucose_level >= 60 & avg_glucose_level < 90] <- "60 - 90"
+  avg_gluc.cat[avg_glucose_level >= 90 & avg_glucose_level < 140] <- "90 - 140"
+  avg_gluc.cat[avg_glucose_level >= 140 & avg_glucose_level < 273] <- "140 - 273" 
    } )
 
 dat$bmi.cat<- as.factor(dat$bmi.cat)
-dat$avg_gluc.cat<- as.factor(dat$avg_gluc.cat)
+dat$avg_gluc.cat<- factor(dat$avg_gluc.cat,levels= c("Below 60","60 - 90","90 - 140","140 - 273" ))
 str(dat)
+
+
 ggplot(dat,aes(x= bmi.cat, fill=stroke))+geom_bar(position = "dodge")+ggtitle("BMI Vs Stroke")+ theme_bw() +
   theme()+ xlab("BMI index") + ylab("Count of people who had a stroke")
 
 ggplot(dat, aes(x=bmi.cat,y = age, color=stroke))+geom_boxplot()
 
+dat_stroke_1 = subset(dat, stroke ==1)
 
-
-ggplot(dat,aes(x= avg_gluc.cat, fill=stroke))+geom_bar(position = "dodge")+ggtitle("Avg Gulcose level Vs Stroke")+ theme_bw() +
+ggplot(dat_stroke_1,aes(x= avg_gluc.cat, fill=stroke))+geom_bar(position = "dodge")+ggtitle("Avg Gulcose level Vs Stroke")+ theme_bw() +
   theme()+ xlab("Avg Glucose level") + ylab("Count of people who had a stroke")
 #dist of glucose by work type
-ggplot(dat,aes(y=avg_glucose_level , fill=work_type))+geom_boxplot()+ggtitle("Avg Gulcose level Vs Stroke")+ theme_bw() +
-  theme()+ xlab("Avg Glucose level") + ylab("Count of people who had a stroke")
+ggplot(dat_stroke_1,aes(y=avg_glucose_level , fill=work_type))+geom_boxplot()+ggtitle("Avg Gulcose level Vs Stroke")+ theme_bw() +
+  theme()+ xlab("Work Type") + ylab("Avg Glucose Level")
 # we can see 25 % to 75 % who get stroke are from age 58 - 78 . the higher the age the chances of getting a stroke is more
 # we can see become who have bmi from 27.5 to 32.5 have higher chances of stroke
 ```
