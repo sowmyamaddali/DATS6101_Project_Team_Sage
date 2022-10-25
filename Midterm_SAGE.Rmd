@@ -172,9 +172,9 @@ sort(stroke_df$age)
 dat <- within(stroke_df, {   
   age.cat <- NA # need to initialize variable
   age.cat[age < 20] <- "Below 20"
-  age.cat[age >= 20 & age < 40] <- "Below 40"
-  age.cat[age >= 40 &age < 60] <- "Below 60"
-  age.cat[age >= 60 &age < 83] <- "Below 83" # As maximum value is 82
+  age.cat[age >= 20 & age < 40] <- "From 20 to 39"
+  age.cat[age >= 40 &age < 60] <- "From 40 to 59"
+  age.cat[age >= 60 &age < 83] <- "From 60 to 82" # As maximum value is 82
    } )
 
 #str(dat)
