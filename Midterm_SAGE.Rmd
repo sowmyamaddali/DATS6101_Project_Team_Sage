@@ -112,6 +112,75 @@ beside = TRUE
 ```
 
 
+
+
+```{r}
+library(ggplot2)
+
+#STROKE VS ABG_GLUCOSE_LEVEL
+
+
+ggplot(stroke_df, aes(x = stroke, y = avg_glucose_level, group = stroke, fill = stroke)) + geom_boxplot()
+
+
+
+```
+
+
+
+
+```{r}
+
+#GENDER VS COUNT
+
+ggplot(stroke_df, aes(x = factor(gender), fill = factor(gender))) + geom_bar() + theme_classic()
+
+
+
+```
+```{r}
+
+##### Age and BMI wrt stroke
+
+ggplot(stroke_df, aes(x = age, y = bmi, color = stroke)) + geom_point() 
+
+
+```
+
+
+
+```{r}
+
+
+library(superheat)
+
+superheat(subset(stroke_df, select = -c(as.numeric(stroke))), scale = TRUE, bottom.label.size = 0.5, bottom.label.text.angle = 90, bottom.label.text.size = 3)
+
+
+```
+
+
+```{r}
+
+library(ggplot2)
+df<-subset(stroke_df,stroke_df$work_type=='Private'& stroke_df$stroke==1)
+df
+
+resi1=table(df$stroke,df$smoking_status)
+barplot(resi1,
+main = "Distribution of Resident People affected by Brain Stroke",
+xlab = "Residence_type",
+ylab = "Number of people",
+col = c("Red","Orange"),
+beside = TRUE
+)
+
+
+```
+
+
+
+
 ```{r}
 
 set.seed(123)
@@ -145,7 +214,12 @@ head(stroke_df)
 
 stroke_df$Residence_type <- as.numeric(factor(stroke_df$Residence_type))
 
+
+stroke_df$smoking_status <- as.numeric(factor(stroke_df$smoking_status))
 head(stroke_df)
+
+
+
 
 
 ```
@@ -160,7 +234,22 @@ chisq.test(stroke_df$Residence_type, stroke_df$stroke)
 
 
 
+ch1<-table(stroke_df$smoking_status, stroke_df$stroke)
+chisq.test(stroke_df$smoking_status, stroke_df$stroke)
 
+format.pval(pv =2.085e-06, 
+
+             # digits : number of digits, but after the 0.0
+            digits = 2, 
+
+             # eps = the threshold value above wich the 
+             # function will replace the pvalue by "<0.0xxx"
+            eps = 0.001, 
+
+             # nsmall = how much tails 0 to keep if digits of 
+             # original value < to digits defined
+            nsmall = 3
+            )
 
 
 ch2<-table(stroke_df$work_type, stroke_df$stroke)  
@@ -172,10 +261,7 @@ format.pval(pv =5.398e-10,
              # digits : number of digits, but after the 0.0
             digits = 2, 
 
-             # eps = the threshold value above wich the 
-             # function will replace the pvalue by "<0.0xxx"
-            eps = 0.001, 
-
+             # 
              # nsmall = how much tails 0 to keep if digits of 
              # original value < to digits defined
             nsmall = 3
