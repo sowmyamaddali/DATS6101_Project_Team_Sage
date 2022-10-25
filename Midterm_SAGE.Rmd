@@ -22,6 +22,7 @@ A stroke is a medical condition in which poor blood flow to the brain causes cel
 Dataset Link: https://www.kaggle.com/datasets/fedesoriano/stroke-prediction-dataset
 ```{r}
 library(ggplot2)
+library(gridExtra)
 library(corrplot)
 library(ROSE)
 ```
@@ -93,12 +94,55 @@ str(stroke_df_train_sample)
 summary(both)
 
 ```
+
 ```{r}
 
 ggplot(stroke_df_train_sample, aes(x=stroke,fill=stroke))+geom_bar()+ggtitle("Distribution of Target varibale after sampling")+ theme_bw() +  theme()+ xlab("Stroke") + ylab("Count of people")
 
 ```
 
+```{r}
+ggplot(data = stroke_df, aes(x=as.character(hypertension), y=age)) +
+    geom_boxplot(fill="steelblue") +
+    labs(title="Age distribution by hypertension", x="hypertension", y="age")
+```
 
+```{r}
+# not needed
+ggplot(data = stroke_df, aes(x=as.character(hypertension), y=avg_glucose_level)) +
+    geom_boxplot(fill="steelblue") +
+    labs(title="Average Glucose Level distribution by hypertension", x="hypertension", y="avg_glucose_level")
+```
 
+```{r}
+ggplot(data = stroke_df, aes(x=as.character(heart_disease ), y=age)) +
+    geom_boxplot(fill="steelblue") +
+    labs(title="Age distribution by heart_disease ", x="heart_disease ", y="age")
+```
 
+Heart disease is related to age
+
+```{r}
+# not needed
+ggplot(data = stroke_df, aes(x=as.character(heart_disease ), y=avg_glucose_level)) +
+    geom_boxplot(fill="steelblue") +
+    labs(title="Average Glucose Level distribution by heart_disease ", x="heart_disease ", y="avg_glucose_level")
+```
+
+```{r}
+# Checking Test of Independence between hypertension and Target Variable Stroke
+#alpha =0.05
+ht_ch<-table(stroke_df$hypertension, stroke_df$stroke) 
+print(ht_ch)
+'When hypertension is 0 (i.e., no hypertension) then there are 4429 people with no stroke and 183 with stroke, and when hypertension is 1 (i.e., hypertension is present) then there are 432 people who had no stroke, and 66 people with stroke.'
+
+chisq.test(stroke_df$hypertension, stroke_df$stroke)
+
+# Checking Test of Independence between heart_disease and Target Variable Stroke
+#alpha =0.05
+hd_ch<-table(stroke_df$heart_disease, stroke_df$stroke)
+print(hd_ch)
+"There are a total of 4632 people who didn't suffer a stroke before and there are 202 people who did not have a stroke before but did have stroke later. On the other hand, there are 229 people who previously suffered with a stroke but not later, and 47 who suffered with a stroke before and later as well."
+
+chisq.test(stroke_df$heart_disease, stroke_df$stroke)
+```
