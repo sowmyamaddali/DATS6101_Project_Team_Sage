@@ -227,9 +227,9 @@ sort(stroke_df$avg_glucose_level)
 dat_gluc <- within(stroke_df, {   
   avg_gluc.cat <- NA # need to initialize variable
   avg_gluc.cat[avg_glucose_level < 60] <- "Below 60"
-  avg_gluc.cat[avg_glucose_level >= 60 & avg_glucose_level < 90] <- "Below 90"
-  avg_gluc.cat[avg_glucose_level >= 90 & avg_glucose_level < 140] <- "Below 140"
-  avg_gluc.cat[avg_glucose_level >= 140 & avg_glucose_level < 273] <- "Below 273" 
+  avg_gluc.cat[avg_glucose_level >= 60 & avg_glucose_level < 90] <- "From 60 upto 90"
+  avg_gluc.cat[avg_glucose_level >= 90 & avg_glucose_level < 140] <- "From 90 upto 140"
+  avg_gluc.cat[avg_glucose_level >= 140 & avg_glucose_level < 273] <- "From 140 upto 273" 
    } )
 
 #str(dat)
