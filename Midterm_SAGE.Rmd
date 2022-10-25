@@ -109,16 +109,17 @@ beside = TRUE
 
 ```
 
-```{r}
-marriage=table(stroke_df$stroke,stroke_df$ever_married)
-barplot(marriage,
-main = "Distribution of Married People affected by Brain Stroke",
-xlab = "Residence_type",
-ylab = "Number of people",
-col = c("blue","yellow"),
-beside = TRUE
-)
-```
+#```{r}
+#marriage=table(stroke_df$stroke,stroke_df$ever_married)
+#barplot(marriage,
+#main = "Distribution of Married People affected by Brain Stroke",
+#xlab = "Residence_type",
+#ylab = "Number of people",
+#col = c("blue","yellow"),
+#beside = TRUE
+#)
+#```
+
 
 ```{r}
 marriage_table = table(stroke_df$ever_married, stroke_df$stroke)
@@ -277,7 +278,16 @@ ggplot(dat, aes(x= stroke, fill = smoking_status, y = age)) + geom_boxplot()
 
 
 
+```{r}
+#Pie chart for marital status
+library(plotly)
+fig <- plot_ly(stroke_df, labels = stroke_df$ever_married, values = stroke_df$stroke, type = 'pie')
+fig <- fig %>% layout(title = 'Marital Status for stroke prediction',
+         xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+         yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
 
+fig
+```
 
 
 
