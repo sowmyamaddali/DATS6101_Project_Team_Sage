@@ -134,7 +134,7 @@ stroke_1 = subset(stroke_df, stroke == 1)
 stroke_0 = subset(stroke_df, stroke == 0)
 
 
-
+ggplot(stroke_1, aes(x = age, fill=stroke))+ geom_density(alpha = 0.3)+ ggtitle("Density plot for stroke and age")
 # how bmi and age is stroke in people 
 ggplot(stroke_1, aes(x=bmi, y=age, color=stroke))+geom_point(size=3)
 #ggplot(stroke_0, aes(x=bmi, y=age, color=stroke))+geom_point(size=3)
@@ -182,7 +182,7 @@ dat <- within(stroke_df, {
   avg_gluc.cat[avg_glucose_level >= 140 & avg_glucose_level < 273] <- "140 - 273" 
    } )
 
-dat$bmi.cat<- as.factor(dat$bmi.cat)
+dat$bmi.cat<- factor(dat$bmi.cat,levels= c("underweight","normal","overweight","obesity","severe obesity" ))
 dat$avg_gluc.cat<- factor(dat$avg_gluc.cat,levels= c("Below 60","60 - 90","90 - 140","140 - 273" ))
 str(dat)
 
@@ -190,7 +190,7 @@ str(dat)
 ggplot(dat,aes(x= bmi.cat, fill=stroke))+geom_bar(position = "dodge")+ggtitle("BMI Vs Stroke")+ theme_bw() +
   theme()+ xlab("BMI index") + ylab("Count of people who had a stroke")
 
-ggplot(dat, aes(x=bmi.cat,y = age, color=stroke))+geom_boxplot()
+ggplot(dat, aes(x=bmi.cat,y = age, fill=stroke))+geom_boxplot()
 
 dat_stroke_1 = subset(dat, stroke ==1)
 
@@ -204,9 +204,22 @@ ggplot(dat_stroke_1,aes(y=avg_glucose_level , fill=work_type))+geom_boxplot()+gg
 ```
 
 ```{r}
-str(dat)
-ctest = chisq.test(as.factor(dat$work_type), dat$stroke)
+
+ggplot(dat, aes(fill=stroke, y = age, x = avg_gluc.cat))+ geom_boxplot()
+```
+```{r}
+
+gender_unkown = subset(dat, gender!= "Unknown")
+smoke_wt_unkown = subset(dat, smoking_status!= "Unknown")
+
+ctest = chisq.test(as.factor(dat$Residence_type), dat$stroke)
 ctest
+ctest1 = chisq.test(as.factor(dat$work_type), dat$stroke)
+ctest1
+ctest2 = chisq.test(as.factor(smoke_wt_unkown$smoking_status), smoke_wt_unkown$stroke)
+ctest2
+ctest3 = chisq.test(as.factor(gender_unkown$gender), gender_unkown$stroke)
+ctest3
 ```
 
 The pvalue of this test is <0.05 so we fail to reject the null hypothesis. That is these two variables smoking status and stroke are related.
