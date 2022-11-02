@@ -3,9 +3,11 @@ title: "Brain Stroke Prediction"
 author: "Team Sage"
 date: "`r Sys.Date()`"
 output:  
-    rmdformats::readthedown:
-      toc_float: true
-      number_sections: true
+      rmdformats::readthedown:
+        toc_float: true
+        number_sections: true
+        includes:
+          before_body: header.html
       
 ---
 
@@ -20,13 +22,13 @@ loadPkg = function(x) { if (!require(x,character.only=T, quietly =T)) { install.
 
 # Chapter 1: Introduction
 ## Why Brain Stroke Prediction ? Prior research and analysis.
-A brain attack, also known as a stroke, it happens when something prevents the blood flow to a certain area of the brain or when a blood artery in the brain leaks. In 2020, stroke was the cause of 1 in 6 fatalities from cardiovascular disease. A stroke occurs in the United States every 40 seconds. One person has a stroke and dies every 3.5 minutes. In the US, there are more than 795,000 stroke victims annually. Of these, about 610,000 are new or first strokes. Nearly 1 in 4 strokes, or about 185,000, occur among persons who have already experienced a stroke. Ischemic strokes account for around 87% of all strokes Stroke is one of the leading causes of death and disability in the USA.Anyone can have a stroke, regardless of their age, gender, or background. According to the US Department of Health and Human Services' National Institutes of Health (NIH), 795,000 people in the US have strokes annually, and 137,000 of them will die.  According to the World Health Organization (WHO), stroke is the second most common cause of death worldwide, accounting for roughly 11% of all fatalities.
+A brain attack, also known as a stroke, it happens when something prevents the blood flow to a certain area of the brain or when a blood artery in the brain leaks. In 2020, stroke was the cause of 1 in 6 fatalities from cardiovascular disease. A stroke occurs in the United States every 40 seconds. One person has a stroke and dies every 3.5 minutes. In the US, there are more than 795,000 stroke victims annually. Of these, about 610,000 are new or first strokes. Nearly 1 in 4 strokes, or about 185,000, occur among persons who have already experienced a stroke. Ischemic strokes account for around 87% of all strokes. Stroke is one of the leading causes of death and disability in the USA. Anyone can have a stroke, regardless of their age, gender, or background. According to the US Department of Health and Human Services' National Institutes of Health (NIH), 795,000 people in the US have strokes annually, and 137,000 of them will die.  According to the World Health Organization (WHO), stroke is the second most common cause of death worldwide, accounting for roughly 11% of all fatalities.
 
 Ref:[link](https://www.nichd.nih.gov/health/topics/stroke/conditioninfo/risk)
 
 # Chapter 2: Description of the Data
 ## Source of the Data
-Presently, our dataset has a total of 5,110 observations across 12 variables. (See below for a readout of the dataset's structure and variable names.) Variable descriptions and additional information on the dataset comes from the following [Link.](https://www.kaggle.com/datasets/fedesoriano/stroke-prediction-dataset)
+Presently, our dataset has a total of 5,110 observations across 12 variables. (See below for a readout of the dataset's structure and variable names.) Variable descriptions and additional information on the dataset comes from the following [link.](https://www.kaggle.com/datasets/fedesoriano/stroke-prediction-dataset)
 
 ```{r basic_libraries, include=FALSE}
 library(ggplot2)
@@ -150,14 +152,13 @@ ggplot(stroke_df, aes(x=avg_glucose_level)) +  geom_density(fill="lightgreen", c
 
 ## Distribution of Stroke (Target variable)
 
-The Target variable stroke here is imbalanced, and doing the balancing first would have an affect on the data, as the copies of the data made during under and over sampling would affect our analyses by changing the initial findings.
-
 
 ```{r target_var, include=TRUE}
 
 ggplot(stroke_df, aes(x=stroke,fill=stroke))+geom_bar()+ggtitle("Distribution of Target variable (Stroke)")+ theme_bw() + theme()+ xlab("Stroke") + ylab("Count of people")
 
 ```
+The Target variable stroke here is imbalanced, and doing the balancing first would have an affect on the data, as the copies of the data made during under and over sampling would affect our analyses by changing the initial findings.
 
 
 # Chapter 3: Exploratory Data Analysis & SMART Questions:
@@ -290,7 +291,8 @@ ggplot(data = stroke_df, aes(x=as.character(hypertension), y=age, fill=hypertens
 ```
 
 A major risk factor for stroke is high blood pressure. HBP makes your heart work harder and gradually damages your organs and arteries. You are more prone to get a stroke due to hypertension as you age. So as the age increases the chances of getting hypertension for an individual is higher which leads to stroke.
-Ref:['link.'](https://www.stroke.org/-/media/Stroke-Files/Lets-Talk-About-Stroke/Risk-Factors/Stroke-and-High-Blood-Pressure-ucm_493407.pdf).
+
+Ref: [link](https://www.stroke.org/-/media/Stroke-Files/Lets-Talk-About-Stroke/Risk-Factors/Stroke-and-High-Blood-Pressure-ucm_493407.pdf).
 
 
 ```{r}
@@ -316,7 +318,7 @@ ggplot(data = stroke_df, aes(x=as.character(heart_disease ), y=age, fill=heart_d
 Heart disorders can increase your risk for stroke. 
 So from the plot we can see that as age increases the chances of getting a heart disease for an individual also increases which leads to stroke. 
 
-Ref: ["link."](https://www.cdc.gov/stroke/risk_factors.htm#:~:text=Heart%20disease,rich%20blood%20to%20the%20brain.).
+Ref: [link](https://www.cdc.gov/stroke/risk_factors.htm#:~:text=Heart%20disease,rich%20blood%20to%20the%20brain.).
 
 ```{r}
 
@@ -350,7 +352,8 @@ ggplot(stroke_1_dat,aes(x=Residence_type,fill=work_type))+geom_bar(position="dod
 A review of numerous research found that working in a high-stress environment may increase the risk of stroke. The meta-analysis is published in the October 14, 2015, online issue of Neurology, the medical journal of the American Academy of Neurology. 
 From the above graph we can see that the number of people who works in private has higher risk of getting stroke in both rural and urban. We can also see that people who are working in self-employed sectors also
 get stroke.
-Ref:["link."](https://www.aan.com/PressRoom/Home/PressRelease/1412#:~:text=Having%20a%20high%20stress%20job,the%20American%20Academy%20of%20Neurology.)
+
+Ref: [link](https://www.aan.com/PressRoom/Home/PressRelease/1412#:~:text=Having%20a%20high%20stress%20job,the%20American%20Academy%20of%20Neurology.)
 
 ```{r}
 
@@ -359,7 +362,9 @@ ggplot(stroke_1_dat,aes(x=Residence_type,fill=smoking_status))+geom_bar(position
 ```
 
 Stroke risk is boosted by smoking by 20–30%. More than 8,000 stroke fatalities are brought on by smoke exposure each year. Smoking alters the working of heart, blood, and vascular systems, which raises your chance of suffering a heart attack.
-From the above graph we can see that the smoking habits of people who suffered stroke in both rural and urban. Ref:["link."](https://www.cdc.gov/tobacco/campaign/tips/diseases/heart-disease-stroke.html#:~:text=Secondhand%20smoke%20increases%20the%20risk,of%20having%20a%20heart%20attack.). Even though smoking also has an effect on causing stroke, surprisingly people who won't smoke have suffered stroke (According to this data). 
+From the above graph we can see that the smoking habits of people who suffered stroke in both rural and urban.
+
+Ref: [link](https://www.cdc.gov/tobacco/campaign/tips/diseases/heart-disease-stroke.html#:~:text=Secondhand%20smoke%20increases%20the%20risk,of%20having%20a%20heart%20attack.). Even though smoking also has an effect on causing stroke, surprisingly people who won't smoke have suffered stroke (According to this data). 
 
 ```{r}
 ch<-table(stroke_df$Residence_type, stroke_df$stroke)  
@@ -368,4 +373,11 @@ chisq.test(stroke_df$Residence_type, stroke_df$stroke)
 
 # Chapter 4: Conclusion
 
-The summary paper demonstrates the exploratory data analysis of different variables such as stroke, age, smoking status, residence type, BMI, Hypertension etc. The cleaned data will be used further and model will be trained on that data. From the analysis, we found the factors(variables) that leads to stroke which are taken in to consideration.Our future aim is to create the best model that achieve maximum result for our problem statement
+A few interesting facts that we found after our analyses are:
+
+- Work_type and smoking_ habit(which includes non-smokers too) of a person can lead to a stroke.
+- Age has played a major role for someone to get affected by stroke.
+- Age with factors like a persons Body Mass Index, Average glucose level, hypertension, and if he/she has any sort of heart disease   plays an important role in predicting if that person can suffer from a stroke.
+- Residence type along with work type and smoking habits of a person will not cause a stroke. 
+
+The summary paper demonstrates the exploratory data analysis of different variables such as stroke, age, smoking status, residence type, BMI, Hypertension etc. The cleaned data will be used further and model will be trained on that data. From the analysis, we found the factors(variables) that leads to stroke which are taken in to consideration.Our future aim is to create the best model that achieve maximum result for our problem statement.
