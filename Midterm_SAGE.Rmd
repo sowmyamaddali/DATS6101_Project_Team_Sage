@@ -1,0 +1,206 @@
+---
+title: "Brain Stroke Prediction"
+author: "Team Sage"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    code_folding: hide
+    number_sections: false
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+---
+
+
+# Brain Stroke Prediction:
+
+A stroke is a medical condition in which poor blood flow to the brain causes cell death. According to the World Health Organization (WHO) stroke is the 2nd leading cause of death globally, responsible for approximately 11% of total deaths.
+
+Dataset Link: https://www.kaggle.com/datasets/fedesoriano/stroke-prediction-dataset
+
+## 1 Importing libraries
+```{r}
+library(ggplot2)
+library(gridExtra)
+library(corrplot)
+library(ROSE)
+library(dplyr)
+```
+
+## 2 Viewing the dataset
+
+```{r}
+
+stroke_df = read.csv("healthcare-dataset-stroke-data.csv")
+stroke_df = subset(stroke_df, select = -c(id))
+head(stroke_df)
+
+# Getting the summary of the dataframe
+summary(stroke_df)
+
+
+# Looking at the structure of the Dataframe
+str(stroke_df)
+
+```
+
+## 3 Converting the data to categorical and numerical respectively
+
+```{r}
+# changing the variables to categorical variables and numerical variables
+stroke_df$gender = as.factor(stroke_df$gender)
+stroke_df$hypertension = as.factor(stroke_df$hypertension)
+stroke_df$heart_disease = as.factor(stroke_df$heart_disease)
+stroke_df$ever_married = as.factor(stroke_df$ever_married)
+stroke_df$bmi = as.numeric(stroke_df$bmi)
+stroke_df$stroke = as.factor(stroke_df$stroke)
+str(stroke_df)
+
+# Finding if there are any NA's in the dataset
+paste("The NA's in the dataset is:",sum(is.na(stroke_df)))
+summary(stroke_df)
+
+```
+## 4 Dealing with NA values
+
+```{r}
+# There are 201 NA's in BMI. Replacing those variables with mean of BMI
+stroke_df$bmi[is.na(stroke_df$bmi)] = mean(stroke_df$bmi,na.rm = TRUE)
+# Finding if there are any NA's after imputation of null values
+paste("The NA's in the dataset is:",sum(is.na(stroke_df)))
+```
+## 5 Distribution of the Target variable - stroke
+
+```{r}
+ggplot(stroke_df, aes(x=stroke,fill=stroke))+geom_bar()+ggtitle("Distribution of Target varibale (Stroke)")+ theme_bw() +  theme()+ xlab("Stroke") + ylab("Count of people")
+```
+
+
+Since the Data is imbalanced we are using sampling techniques such as under sampling and over sampling. In this case we used both under and over sampling 
+
+## 6 Balancing the dataset
+
+```{r}
+# we are first splitting the data into test and train 
+set.seed(123)
+ind <- sample(2, nrow(stroke_df), replace = TRUE, prob = c(0.7, 0.3))
+train <- stroke_df[ind==1,]
+test <- stroke_df[ind==2,]
+
+
+# In the train data we are using under and oversampling to address the class imbalance problem
+
+both <- ovun.sample(stroke~., data=train, method = "both",
+                    p = 0.5,
+                    seed = 222,
+                    N = 5110)$data
+r<-table(both$stroke)
+paste("Seeing if the class imabalance is fixed")
+r
+# copying this data frame to a new dataframe
+stroke_df_train_sample = both
+str(stroke_df_train_sample)
+# Looking at the Information in the dataset after sampling 
+summary(both)
+
+```
+## 7 Checking the target variable after balacing
+
+```{r}
+ggplot(stroke_df_train_sample, aes(x=stroke,fill=stroke))+geom_bar()+ggtitle("Distribution of Target varibale after sampling")+ theme_bw() +  theme()+ xlab("Stroke") + ylab("Count of people")
+
+```
+
+## 8 Histogram for age & Density plot for stroke and age
+
+```{r}
+ggplot(stroke_df, aes(x = age)) + 
+    geom_histogram(fill = 'skyblue', col = 'red', binwidth = 7, size=1)+
+  ggtitle("Histogram for age")
+
+ggplot(stroke_df, aes(x = age, fill=stroke))+
+  geom_density(alpha = 0.3)+ ggtitle("Density plot for stroke and age")
+
+ggplot(stroke_df, aes(x = age))+
+  geom_density(col= "red", fill= "skyblue", alpha = 0.2)+ ggtitle("Density plot for stroke and age")
+```
+
+## 9 Density plot for Average Glucose level
+
+```{r}
+ggplot(stroke_df, aes(x=avg_glucose_level, fill=stroke)) +
+    geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity') +
+    scale_fill_manual(values=c("skyblue", "red")) +
+    theme_bw() +
+    labs(fill="Stroke") +
+  ggtitle("Density plot for Average Glucose Level")
+```
+
+## 10 Boxplot for age and marital status
+
+```{r}
+ggplot(data = stroke_df, aes(x=ever_married, y=age, fill=ever_married)) + geom_boxplot()+
+  labs(title="Age distribution by Marital status", x="ever_married", y="age")
+```
+
+## 11 Plots with respect to hypertension
+
+```{r}
+ggplot(stroke_df, aes(hypertension, fill=hypertension))+geom_bar()+ggtitle("Bar graph showing the number people with and without hypertension")
+
+ggplot(data = stroke_df, aes(x=as.character(hypertension), y=age, fill=hypertension)) +
+    geom_boxplot() +
+    labs(title="Age distribution by hypertension", x="hypertension", y="age")
+
+ggplot(data = stroke_df, aes(x=as.character(hypertension), y=avg_glucose_level, fill=hypertension)) + geom_boxplot() +
+    labs(title="Average Glucose Level distribution by hypertension", x="hypertension", y="avg_glucose_level")
+```
+
+
+### 11.1 Chi-square test on Hypertension
+
+```{r}
+# Checking Test of Independence between hypertension and Target Variable Stroke
+#alpha =0.05
+ht_ch<-table(stroke_df$hypertension, stroke_df$stroke) 
+print(ht_ch)
+'When hypertension is 0 (i.e., no hypertension) then there are 4429 people with no stroke and 183 with stroke, and when hypertension is 1 (i.e., hypertension is present) then there are 432 people who had no stroke, and 66 people with stroke.'
+
+chisq.test(stroke_df$hypertension, stroke_df$stroke)
+```
+p-value < 0.05, so we can say that there is statistically significant difference in stroke frequency with and without hypertension.
+
+## 12 Plots with respect to heart_disease
+
+```{r}
+ggplot(stroke_df, aes(heart_disease, fill=heart_disease))+geom_bar()+ggtitle("Bar graph showing the number people with and without heart disease")
+
+ggplot(data = stroke_df, aes(x=as.character(heart_disease ), y=age, fill=heart_disease)) +
+    geom_boxplot() +
+    labs(title="Age distribution by heart_disease ", x="heart_disease ", y="age")
+
+# not needed
+ggplot(data = stroke_df, aes(x=as.character(heart_disease ), y=avg_glucose_level, fill=heart_disease)) + geom_boxplot() +
+    labs(title="Average Glucose Level distribution by heart_disease ", x="heart_disease ", y="avg_glucose_level")
+```
+
+
+## 12.1 Chi-square test on heart_disease
+
+```{r}
+# Checking Test of Independence between heart_disease and Target Variable Stroke
+#alpha =0.05
+hd_ch<-table(stroke_df$heart_disease, stroke_df$stroke)
+print(hd_ch)
+"There are a total of 4632 people who didn't suffer a stroke before and there are 202 people who did not have a stroke before but did have stroke later. On the other hand, there are 229 people who previously suffered with a stroke but not later, and 47 who suffered with a stroke before and later as well."
+
+chisq.test(stroke_df$heart_disease, stroke_df$stroke)
+```
+p-value < 0.05, so we can say that there is statistically significant difference in stroke frequency with heart disease.
+
+```{r}
+wilcox.test(stroke_df$age ~ stroke_df$stroke, alternative = "two.sided")
+```
