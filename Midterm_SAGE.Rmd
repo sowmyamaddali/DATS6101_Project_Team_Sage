@@ -107,3 +107,13 @@ ggplot(stroke_df, aes(x=stroke,fill=stroke))+geom_bar()+ggtitle("Distribution of
 ```
 
 
+```{r}
+library(plotly)
+fig <- plot_ly(stroke_df, labels = stroke_df$ever_married, values = stroke_df$stroke, type = 'pie')
+fig <- fig %>% layout(title = 'Marital Status for stroke prediction',
+         xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+         yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+
+fig
+```
+
