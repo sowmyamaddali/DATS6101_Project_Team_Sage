@@ -199,4 +199,23 @@ ggplot(data = stroke_df, aes(x=as.character(heart_disease ), y=age, fill=heart_d
 
 ```
 
+```{r}
+
+ctest4 = chisq.test(stroke_df$heart_disease, stroke_df$heart_disease)
+ctest4
+
+```
+
+```{r}
+
+ggplot(stroke_1_dat, aes(x=Residence_type,fill=stroke))+geom_bar(position = "dodge")+ggtitle("People Having stroke in Urban and Rural Area (People Affected by stroke)")+ theme_bw() +theme()+ xlab("Residence Type") + ylab("Number of people")
+
+```
+
+
+```{r}
+
+ggplot(stroke_1_dat,aes(x=Residence_type,fill=work_type))+geom_bar(position="dodge")+ggtitle("Work Type of Rural and Urban - People who are affected by stroke ")+theme()+theme_bw()+ylab("No of people")
+
+```
 
