@@ -291,6 +291,20 @@ fig <- fig %>% layout(title = 'Marital Status for stroke prediction',
 fig
 ```
 
+```{r}
+df = subset(stroke_df,stroke_df$work_type == "Private" | stroke_df$work_type == "Self-employed" | stroke_df$gender == "Male")
+df
+
+
+ggplot(df, aes(fill=work_type, y=gender, x=stroke )) + 
+  geom_boxplot()
+
+
+```
+
+
+
+
 
 ```{r}
 #calculating the chi-square test for the ever_married column and the target coulmn that is stroke
