@@ -117,3 +117,19 @@ fig <- fig %>% layout(title = 'Marital Status for stroke prediction',
 fig
 ```
 
+
+As age is in range we are splitting them into buckets and trying to do the further analysis by converting the age as a factor variable.
+```{r}
+dat <- within(stroke_df, {   
+  age.cat <- NA # need to initialize variable
+  age.cat[age < 20] <- "Below 20"
+  age.cat[age >= 20 & age < 40] <- "20 - 40"
+  age.cat[age >= 40 &age < 60] <- "40 - 60"
+  age.cat[age >= 60 &age < 83] <- "60 - 83" # As maximum value is 82
+   } )
+
+#str(dat)
+
+dat$age.cat<- as.factor(dat$age.cat)
+str(dat)
+```
