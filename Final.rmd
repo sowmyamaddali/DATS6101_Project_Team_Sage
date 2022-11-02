@@ -219,3 +219,15 @@ ggplot(stroke_1_dat,aes(x=Residence_type,fill=work_type))+geom_bar(position="dod
 
 ```
 
+
+```{r}
+
+ggplot(stroke_1_dat,aes(x=Residence_type,fill=smoking_status))+geom_bar(position="dodge")+ggtitle("Smoking habit of Rural and Urban - People who are affected by stroke ")+theme()+theme_bw()+ylab("No of people")
+
+```
+
+
+```{r}
+ch<-table(stroke_df$Residence_type, stroke_df$stroke)  
+chisq.test(stroke_df$Residence_type, stroke_df$stroke)
+```
