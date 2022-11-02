@@ -99,6 +99,11 @@ ggplot(stroke_df_train_sample, aes(x=stroke,fill=stroke))+geom_bar()+ggtitle("Di
 
 ```
 
+The Target variable stroke here is imbalanced, and doing the balancing first would have an affect on the data, as the copies of the data made during under and over sampling would affect our analyses by changing the initial findings.
 
+
+```{r target_var, include=TRUE}
+ggplot(stroke_df, aes(x=stroke,fill=stroke))+geom_bar()+ggtitle("Distribution of Target variable (Stroke)")+ theme_bw() + theme()+ xlab("Stroke") + ylab("Count of people")
+```
 
 
