@@ -140,7 +140,7 @@ dim(test)
 library(ROSE)
 set.seed(1234)
 
-logitrose  <- glm(stroke ~ age + avg_glucose_level + heart_disease + hypertension, family=binomial (link="logit"), data=train)
+logitrose  <- glm(stroke ~., family=binomial (link="logit"), data=train)
 
 
 testrose_x <- test[ , c(1:10)]
@@ -151,5 +151,13 @@ ClassificationError <- mean(predlogitrose != test$stroke)
 print(paste("Accuracy = ", 1-ClassificationError)) 
 ```
 
-=
+```{r}
+
+
+
+
+
+
+```
+
 
