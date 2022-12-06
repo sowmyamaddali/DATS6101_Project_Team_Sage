@@ -107,7 +107,7 @@ stroke_df_test = test
 str(stroke_df_train_sample)
 # Looking at the Information in the dataset after sampling 
 summary(both)
-
+stroke_df_test
 ```
 
 
@@ -115,11 +115,15 @@ summary(both)
 library(ROSE)
 set.seed(1234)
 logitrose  <- glm(stroke ~., family=binomial (link="logit"), data=stroke_df_train_sample)
-testrose_x <- stroke_df_test[ , c(1:10)]
+testrose_x <- stroke_df_test
 predlogitrose <- predict(logitrose, newdata=testrose_x, type="response")
-predlogitrose <- ifelse(predlogitrose>0.5, 1, 0)
-ClassificationError <- mean(predlogitrose != test$stroke) 
-print(paste("Accuracy = ", 1-ClassificationError)) 
+confusion <- table(testrose_x$stroke, predlogitrose >= 0.5)
+confusion
+#predlogitrose <- ifelse(predlogitrose>0.5, 1, 0)
+#ClassificationError <- mean(predlogitrose != test$stroke) 
+#print(paste("Accuracy = ", 1-ClassificationError)) 
+accuracy <- (confusion[2, 2] + confusion[1, 1]) / sum(confusion)
+print(paste('Accuracy for test', accuracy))
 ```
 ```{r}
 # using the function prop.table() combined with table() to verify if the randomization process is correct.
@@ -141,6 +145,22 @@ table_mat
 accuracy_Test <- sum(diag(table_mat)) / sum(table_mat)
 print(paste('Accuracy for test', accuracy_Test))
 ```
+```{r}
+control <- rpart.control(minsplit = 5,
+    minbucket = round(5 / 3),
+    maxdepth = 6,
+    cp = 0)
+tune_fit <- rpart(stroke~., data = stroke_df_train_sample , method = 'class', control = control)
+rpart.plot(tune_fit, extra = 106)
+```
+```{r}
+predict_unseen1 <-predict(tune_fit, stroke_df_test, type = 'class')
+table_mat <- table(stroke_df_test$stroke, predict_unseen1)
+table_mat
+accuracy_Test <- sum(diag(table_mat)) / sum(table_mat)
+print(paste('Accuracy for test', accuracy_Test))
+```
+
 
 ## 7 Checking the target variable after balacing
 
