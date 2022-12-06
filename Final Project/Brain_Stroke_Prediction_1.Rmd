@@ -300,3 +300,36 @@ print(paste('False_positive_rate', False_positive_rate))
 print(paste('f1_score for test', f1_score))
 print(paste('recall_score for test', recall_score))
 ```
+# rf 1
+```{r}
+x = subset(trainrose, select = -c(age,ever_married,Residence_type))
+classifier_RF1 = randomForest(x = x,
+                             y = trainrose$stroke,
+                             ntree = 500)
+  
+classifier_RF1
+```
+
+```{r}
+# Predicting the Test set results
+y_pred = predict(classifier_RF, newdata = test[-11])
+
+# Confusion Matrix
+confusion_mtx = table(test$stroke, y_pred)
+confusion_mtx
+TN =confusion_mtx[1,1]
+TP =confusion_mtx[2,2]
+FP =confusion_mtx[1,2]
+FN =confusion_mtx[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(FP)/(FP+TN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+False_positive_rate =(FP)/(FP+TN)
+False_negative_rate =(FN)/(FN+TP)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('False_positive_rate', False_positive_rate))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+```
