@@ -137,7 +137,7 @@ prop.table(table(stroke_df_test$stroke))
 ```{r}
 library(rpart)
 library(rpart.plot)
-fit <- rpart(stroke~., data = stroke_df_train_sample , method = 'class')
+fit <- rpart(stroke~ ., data = stroke_df_train_sample , method = 'class')
 rpart.plot(fit, extra = 106)
 ```
 ```{r}
