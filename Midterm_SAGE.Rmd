@@ -84,29 +84,64 @@ Since the Data is imbalanced we are using sampling techniques such as under samp
 ## 6 Balancing the dataset
 
 ```{r}
-# we are first splitting the data into test and train 
-set.seed(123)
-ind <- sample(2, nrow(stroke_df), replace = TRUE, prob = c(0.7, 0.3))
-train <- stroke_df[ind==1,]
-test <- stroke_df[ind==2,]
 
 
 # In the train data we are using under and oversampling to address the class imbalance problem
 
-both <- ovun.sample(stroke~., data=train, method = "both",
+both <- ovun.sample(stroke~., data=stroke_df, method = "both",
                     p = 0.5,
                     seed = 222,
                     N = 5110)$data
+# we are first splitting the data into test and train 
+set.seed(123)
+ind <- sample(2, nrow(both), replace = TRUE, prob = c(0.7, 0.3))
+train <- both[ind==1,]
+test <- both[ind==2,]
+
 r<-table(both$stroke)
 paste("Seeing if the class imabalance is fixed")
 r
 # copying this data frame to a new dataframe
-stroke_df_train_sample = both
+stroke_df_train_sample = train
+stroke_df_test = test
 str(stroke_df_train_sample)
 # Looking at the Information in the dataset after sampling 
 summary(both)
 
 ```
+
+
+```{r}
+library(ROSE)
+set.seed(1234)
+logitrose  <- glm(stroke ~., family=binomial (link="logit"), data=stroke_df_train_sample)
+testrose_x <- stroke_df_test[ , c(1:10)]
+predlogitrose <- predict(logitrose, newdata=testrose_x, type="response")
+predlogitrose <- ifelse(predlogitrose>0.5, 1, 0)
+ClassificationError <- mean(predlogitrose != test$stroke) 
+print(paste("Accuracy = ", 1-ClassificationError)) 
+```
+```{r}
+# using the function prop.table() combined with table() to verify if the randomization process is correct.
+prop.table(table(stroke_df_train_sample$stroke))
+prop.table(table(stroke_df_test$stroke))
+
+```
+
+```{r}
+library(rpart)
+library(rpart.plot)
+fit <- rpart(stroke~., data = stroke_df_train_sample , method = 'class')
+rpart.plot(fit, extra = 106)
+```
+```{r}
+predict_unseen <-predict(fit, stroke_df_test, type = 'class')
+table_mat <- table(stroke_df_test$stroke, predict_unseen)
+table_mat
+accuracy_Test <- sum(diag(table_mat)) / sum(table_mat)
+print(paste('Accuracy for test', accuracy_Test))
+```
+
 ## 7 Checking the target variable after balacing
 
 ```{r}
