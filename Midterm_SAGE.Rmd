@@ -28,6 +28,8 @@ library(gridExtra)
 library(corrplot)
 library(ROSE)
 library(dplyr)
+library(caTools)
+library(randomForest)
 ```
 
 ## 2 Viewing the dataset
@@ -107,7 +109,7 @@ stroke_df_test = test
 str(stroke_df_train_sample)
 # Looking at the Information in the dataset after sampling 
 summary(both)
-stroke_df_test
+ncol(stroke_df_test)
 ```
 
 
@@ -157,9 +159,68 @@ rpart.plot(tune_fit, extra = 106)
 predict_unseen1 <-predict(tune_fit, stroke_df_test, type = 'class')
 table_mat <- table(stroke_df_test$stroke, predict_unseen1)
 table_mat
+TN =table_mat[1,1]
+TP =table_mat[2,2]
+FP =table_mat[1,2]
+FN =table_mat[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(FP)/(FP+TN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+False_positive_rate =(FP)/(FP+TN)
+False_negative_rate =(FN)/(FN+TP)
 accuracy_Test <- sum(diag(table_mat)) / sum(table_mat)
-print(paste('Accuracy for test', accuracy_Test))
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('False_positive_rate', False_positive_rate))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
 ```
+```{r}
+stroke_df_train_sample[0:10]
+```
+
+```{r}
+classifier_RF = randomForest(x = stroke_df_train_sample[-11],
+                             y = stroke_df_train_sample$stroke,
+                             ntree = 500)
+  
+classifier_RF
+```
+```{r}
+# Predicting the Test set results
+y_pred = predict(classifier_RF, newdata = stroke_df_test[-11])
+
+# Confusion Matrix
+confusion_mtx = table(stroke_df_test$stroke, y_pred)
+confusion_mtx
+TN =confusion_mtx[1,1]
+TP =confusion_mtx[2,2]
+FP =confusion_mtx[1,2]
+FN =confusion_mtx[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(FP)/(FP+TN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+False_positive_rate =(FP)/(FP+TN)
+False_negative_rate =(FN)/(FN+TP)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('False_positive_rate', False_positive_rate))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+```
+
+```{r}
+plot(classifier_RF)
+  
+# Importance plot
+importance(classifier_RF)
+  
+# Variable importance plot
+varImpPlot(classifier_RF)
+```
+
 
 
 ## 7 Checking the target variable after balacing
