@@ -13,41 +13,33 @@ output:
 ```{r setup, include=FALSE}
 
 knitr::opts_chunk$set(echo = FALSE)
-options(scipen = 999,  digits = 3, big.mark=",", warn = -1)
-library(tidyverse)      # Collection of R packages for data science
-         # Data structures and functions for plotting of missing values
-
-library(ggplot2)        # Data visualisations Using the Grammar of Graphics
-library(superheat)      # Generating customizable heatmaps
-
-
-```
-
-```{r basicfunct, include=FALSE}
-loadPkg = function(x) { if (!require(x,character.only=T, quietly =T)) { install.packages(x,dep=T,repos="http://cran.us.r-project.org"); if(!require(x,character.only=T)) stop("Package not found") } }
-```
-
-```{r basic_libraries, include=FALSE}
 library(ggplot2)
 library(gridExtra)
 library(corrplot)
 library(ROSE)
 library(dplyr)
+library(CatEncoders)
+
 ```
 
+## 2 Viewing the dataset
 
-```{r load_csv, include=FALSE}
+```{r}
 stroke_df = read.csv("healthcare-dataset-stroke-data.csv")
 
-```
 
-```{r desc, include=TRUE}
+head(stroke_df)
+# Getting the summary of the dataframe
+summary(stroke_df)
+# Looking at the structure of the Dataframe
 str(stroke_df)
 ```
 
-```{r data_cleaning, include=FALSE}
-stroke_df = subset(stroke_df, select = -c(id))
+## 3 Converting the data to categorical and numerical respectively
 
+```{r}
+
+stroke_df = subset(stroke_df, select = -c(id))
 # converting the numeric variables to factor variables
 stroke_df$gender = as.factor(stroke_df$gender)
 stroke_df$hypertension = as.factor(stroke_df$hypertension)
@@ -55,109 +47,188 @@ stroke_df$heart_disease = as.factor(stroke_df$heart_disease)
 stroke_df$ever_married = as.factor(stroke_df$ever_married)
 stroke_df$bmi = as.numeric(stroke_df$bmi)
 stroke_df$stroke = as.factor(stroke_df$stroke)
-
+stroke_df$work_type = as.factor(stroke_df$work_type)
+stroke_df$Residence_type = as.factor(stroke_df$Residence_type)
+stroke_df$smoking_status = as.factor(stroke_df$smoking_status)
 # To get the summary statistics of the dataset
 summary(stroke_df)
-
 ```
+## 4 Dealing with NA values
 
-```{r find_na_fix, include=FALSE}
-# To find the NA's in the dataset
-paste("The NA's in the dataset is:",sum(is.na(stroke_df)))
-
-```
-
-```{r na_fix, include=FALSE}
-
-# Replacing NA values with average BMI value
+```{r}
+# There are 201 NA's in BMI. Replacing those variables with mean of BMI
 stroke_df$bmi[is.na(stroke_df$bmi)] = mean(stroke_df$bmi,na.rm = TRUE)
-paste("The NA's in the dataset after imputation of BMI with mean is:",sum(is.na(stroke_df)))
+# Finding if there are any NA's after imputation of null values
+paste("The NA's in the dataset is:",sum(is.na(stroke_df)))
 ```
 
-```{r summary_after_cleaning, include=TRUE}
-# since we had only 1 data point in others category for gender we are removing it
-stroke_df = subset(stroke_df,gender!="Other")
-summary(stroke_df)
-```
 
-```{r subsets, include=FALSE}
-# subsetting the data for various analyses 
-stroke_1 = subset(stroke_df, stroke == 1)
-stroke_0 = subset(stroke_df, stroke == 0)
-stroke_1_female = subset(stroke_df, stroke == 1 & gender == "Female")
-stroke_1_male = subset(stroke_df, stroke == 1 & gender == "Male")
 
-# creating different columns for bmi, age and average_glucose_level based on different bucketing for each variables
-dat <- within(stroke_df, {   
-  bmi.cat = NA # need to initialize variable
-  bmi.cat[bmi < 18.5] = "underweight"
-  bmi.cat[bmi >= 18.5 & bmi < 25] = "normal"
-  bmi.cat[bmi >= 25 & bmi < 30] = "overweight"
-  bmi.cat[bmi >= 30 & bmi < 40] = "obesity"
-  bmi.cat[bmi >=40] = "severe obesity" 
-  avg_gluc.cat = NA # need to initialize variable
-  avg_gluc.cat[avg_glucose_level < 60] = "Below 60"
-  avg_gluc.cat[avg_glucose_level >= 60 & avg_glucose_level < 90] = "60 - 90"
-  avg_gluc.cat[avg_glucose_level >= 90 & avg_glucose_level < 120] = "90 - 120"
-  avg_gluc.cat[avg_glucose_level >= 120 & avg_glucose_level < 180] = "120 - 180"
-  avg_gluc.cat[avg_glucose_level >= 180 & avg_glucose_level < 273] = "180 - 273"
-  age.cat = NA
-  age.cat[age<=20] = "Under 20"
-  age.cat[age>=21 & age<= 40 ] = "20-40"
-  age.cat[age>=41 & age<= 60 ] = "40-60"
-  age.cat[age>=61 & age<= 80 ] = "60-80"
-  age.cat[age>=80 ] = "above 80"
-   } )
 
-dat$bmi.cat<- factor(dat$bmi.cat,levels= c("underweight","normal","overweight","obesity","severe obesity" ))
-dat$avg_gluc.cat<- factor(dat$avg_gluc.cat,levels= c("Below 60","60 - 90","90 - 120","120 - 180","180 - 273" ))
-dat$age.cat<- factor(dat$age.cat,levels= c("Under 20","20-40","40-60","60-80","above 80"))
-```
 
 
 ```{r}
 
-logit  <- glm(stroke ~ age + avg_glucose_level + heart_disease + hypertension, family=binomial (link="logit"), data=stroke_df)
-summary(logit)
 
-```
-```{r}
-
-set.seed(1234)
-trainIndex = sample(1:nrow(stroke_df), size=round(0.75 * nrow(stroke_df)), replace=FALSE)
-train <- stroke_df[trainIndex,]
-test  <- stroke_df[-trainIndex,]
-
+ind <- sample(2, nrow(stroke_df), replace = TRUE, prob = c(0.7, 0.3))
+train <- stroke_df[ind==1,]
+test <- stroke_df[ind==2,]
 dim(train)
 dim(test)
 
-
 ```
 
-```{r}
 
-# LOGISTIC REGRESSIOn
-library(ROSE)
-set.seed(1234)
+
+
+```{r}
 
 logitrose  <- glm(stroke ~., family=binomial (link="logit"), data=train)
+predlogitrose <- predict(logitrose, newdata=test[-11], type="response")
+confusion <- table(test$stroke, predlogitrose >= 0.5)
+confusion
+# Eval Metric
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(TP)/(TP+FN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
 
 
-testrose_x <- test[ , c(1:10)]
-predlogitrose <- predict(logitrose, newdata=testrose_x, type="response")
-predlogitrose <- ifelse(predlogitrose>0.5, 1, 0)
 
-ClassificationError <- mean(predlogitrose != test$stroke) 
-print(paste("Accuracy = ", 1-ClassificationError)) 
+
 ```
+
 
 ```{r}
 
 
+fit <- rpart(stroke~ ., data = train , method = 'class')
+rpart.plot(fit, extra = 106)
+```
+
+
+
+```{r}
+predict_unseen <-predict(fit, test[-11], type = 'class')
+confusion <- table(test$stroke, predict_unseen)
+confusion
+# Eval Metric
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(TP)/(TP+FN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+
+
+
 
 
 
 
 ```
+
+
+
+```{r}
+
+
+control <- rpart.control(minsplit = 5,
+    minbucket = round(5 / 3),
+    maxdepth = 6,
+    cp = 0)
+tune_fit <- rpart(stroke~., data = train , method = 'class', control = control)
+rpart.plot(tune_fit, extra = 106)
+```
+
+```{r}
+predict_unseen1 <-predict(tune_fit, test[-11], type = 'class')
+confusion <- table(test$stroke, predict_unseen1)
+confusion
+# Eval Metric
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(TP)/(TP+FN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+
+
+
+
+
+
+```
+
+
+
+
+
+
+```{r}
+
+classifier_RF = randomForest(x = train[-11],
+                             y = train$stroke,
+                             ntree = 500)
+  
+classifier_RF
+```
+
+
+```{r}
+# Predicting the Test set results
+y_pred = predict(classifier_RF, newdata = test[-11])
+# Confusion Matrix
+confusion = table(test$stroke, y_pred)
+confusion
+# Eval Metric
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(TP)/(TP+FN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
 
 
