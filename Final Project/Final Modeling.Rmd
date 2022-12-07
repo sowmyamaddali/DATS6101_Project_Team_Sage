@@ -20,7 +20,9 @@ library(caTools)
 library(randomForest)
 library(rpart)
 library(rpart.plot)
+library("pROC")
 ```
+
 ```{r load_csv}
 stroke_df = read.csv("healthcare-dataset-stroke-data.csv")
 ```
@@ -169,7 +171,7 @@ nrow(stroke_df[11])
 
 
 ```{r}
-library(ROSE)
+
 set.seed(1234)
 logitrose  <- glm(stroke ~., family=binomial (link="logit"), data=train)
 predlogitrose <- predict(logitrose, newdata=test[-11], type="response")
@@ -189,6 +191,11 @@ print(paste('Accuracy for test', accuracy_model))
 print(paste('precision for test', precision))
 print(paste('f1_score for test', f1_score))
 print(paste('recall_score for test', recall_score))
+
+test_prob = predict(logitrose, test[-11], type = "response")
+
+test_roc = roc(test$stroke ~ test_prob, plot = TRUE, print.auc = TRUE)
+test_roc
 ```
 
 ## LOGIT with feature selected variables 
@@ -221,6 +228,11 @@ print(paste('Accuracy for test', accuracy_model))
 print(paste('precision for test', precision))
 print(paste('f1_score for test', f1_score))
 print(paste('recall_score for test', recall_score))
+
+test_prob = predict(logitrose, test_fe[-7], type = "response")
+
+test_roc = roc(test_fe$stroke ~ test_prob, plot = TRUE, print.auc = TRUE)
+test_roc
 ```
 
 ## Decision Tree
@@ -372,15 +384,50 @@ print(paste('Accuracy for test', accuracy_model))
 print(paste('precision for test', precision))
 print(paste('f1_score for test', f1_score))
 print(paste('recall_score for test', recall_score))
+varImp(classifier_RF)
 ```
+# Random forest with feature selection with 6 var
+```{r}
+train_fe1 = subset(train, select = c(age,avg_glucose_level,work_type,hypertension,smoking_status,bmi,stroke))
+test_fe1 = subset(test, select = c(age,avg_glucose_level,work_type,hypertension,smoking_status,bmi,stroke))
+dim(train_fe1)
+dim(test_fe1)
+classifier_RF = randomForest(x = train_fe1[-7],
+                             y = train_fe1$stroke,
+                             ntree = 500)
 
+classifier_RF
+
+```
+```{r}
+# Predicting the Test set results
+y_pred = predict(classifier_RF, newdata = test_fe1[-7])
+
+# Confusion Matrix
+confusion = table(test_fe1$stroke, y_pred)
+confusion
+# Eval Metric
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(TP)/(TP+FN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+varImp(classifier_RF)
+```
 
 ## Random Forest with feature selected variables 
 ```{r}
 classifier_RF1 = randomForest(x = train_fe[-7],
                              y = train_fe$stroke,
                              ntree = 500)
-  
+
 classifier_RF1
 
 ```
@@ -489,6 +536,11 @@ print(paste('Accuracy for test', accuracy_model))
 print(paste('precision for test', precision))
 print(paste('f1_score for test', f1_score))
 print(paste('recall_score for test', recall_score))
+
+test_prob = predict(logitrose, test1[-11], type = "response")
+
+test_roc = roc(test1$stroke ~ test_prob, plot = TRUE, print.auc = TRUE)
+test_roc
 ```
 
 ## LOGIT Model with feature selection 
@@ -513,6 +565,11 @@ print(paste('Accuracy for test', accuracy_model))
 print(paste('precision for test', precision))
 print(paste('f1_score for test', f1_score))
 print(paste('recall_score for test', recall_score))
+
+test_prob = predict(logitrose, test1_fe[-11], type = "response")
+
+test_roc = roc(test1_fe$stroke ~ test_prob, plot = TRUE, print.auc = TRUE)
+
 ```
 ## DECISION TREE
 
@@ -535,10 +592,14 @@ precision =(TP)/(TP+FP)
 recall_score =(TP)/(TP+FN)
 f1_score=2*((precision*recall_score)/(precision+recall_score))
 accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+FPR = FP/(FP+TN)
+TPR = (TP)/(TP+FN)
 print(paste('Accuracy for test', accuracy_model))
 print(paste('precision for test', precision))
 print(paste('f1_score for test', f1_score))
 print(paste('recall_score for test', recall_score))
+
+
 ```
 ## DECISION TREE with feature selection
 
