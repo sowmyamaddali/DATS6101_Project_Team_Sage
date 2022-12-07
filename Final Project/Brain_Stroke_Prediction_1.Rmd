@@ -72,7 +72,7 @@ str(stroke_df)
 
 For our exploratory data analysis, we ignored id because this is an independent variable and has no relationship with stroke. Following this we cleaned the dataset in which we removed the id.
 
-```{r data_cleaning, include=FALSE}
+```{r data_cleaning}
 stroke_df = subset(stroke_df, select = -c(id))
 
 # converting the numeric variables to factor variables
@@ -110,7 +110,7 @@ stroke_df = subset(stroke_df,gender!="Other")
 summary(stroke_df)
 ```
 
-```{r subsets, include=FALSE}
+```{r subsets}
 # subsetting the data for various analyses 
 stroke_1 = subset(stroke_df, stroke == 1)
 stroke_0 = subset(stroke_df, stroke == 0)
@@ -142,6 +142,13 @@ dat <- within(stroke_df, {
 dat$bmi.cat<- factor(dat$bmi.cat,levels= c("underweight","normal","overweight","obesity","severe obesity" ))
 dat$avg_gluc.cat<- factor(dat$avg_gluc.cat,levels= c("Below 60","60 - 90","90 - 120","120 - 180","180 - 273" ))
 dat$age.cat<- factor(dat$age.cat,levels= c("Under 20","20-40","40-60","60-80","above 80"))
+dat$avg_gluc.cat = as.numeric(factor(dat$avg_gluc.cat))
+dat$bmi.cat = as.numeric(factor(dat$bmi.cat))
+dat$age.cat = as.numeric(factor(dat$age.cat))
+dat$avg_gluc.cat = factor(dat$avg_gluc.cat)
+dat$bmi.cat = factor(dat$bmi.cat)
+dat$age.cat = factor(dat$age.cat)
+str(dat)
 ```
 
 
@@ -164,19 +171,35 @@ dim(train)
 dim(test)
 ```
 ```{r}
-str(train[0:11])
+train
 ```
 
 ```{r}
 set.seed(1234)
 
-trainrose<-ROSE(stroke~.,data=train[0:11])$data
+trainrose<-ROSE(stroke~.,data=train)$data
 
 ggplot(trainrose, aes(x=stroke,fill=stroke))+geom_bar()+ggtitle("Distribution of Target varibale (Stroke)")+ theme_bw() +  theme()+ xlab("Stroke") + ylab("Count of people")
 ```
 ```{r}
+str(trainrose)
+```
+
+```{r}
+trainrose$age = abs(trainrose$age)
+trainrose$avg_glucose_level = abs(trainrose$avg_glucose_level)
+summary(trainrose)
+```
+```{r}
+trainrose
+test
+```
+
+
+```{r}
 table(train$stroke)
 table(trainrose$stroke)
+summary(trainrose)
 ```
 
 ## LOGIT MODEL
@@ -197,7 +220,7 @@ TP =confusion[2,2]
 FP =confusion[1,2]
 FN =confusion[2,1]
 precision =(TP)/(TP+FP)
-recall_score =(FP)/(FP+TN)
+recall_score =(TP)/(TP+FN)
 f1_score=2*((precision*recall_score)/(precision+recall_score))
 accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
 False_positive_rate =(FP)/(FP+TN)
@@ -213,7 +236,7 @@ print(paste('recall_score for test', recall_score))
 ```{r}
 library(rpart)
 library(rpart.plot)
-fit <- rpart(stroke~ ., data = trainrose , method = 'class')
+fit <- rpart(stroke~ . , data = trainrose , method = 'class')
 rpart.plot(fit, extra = 106)
 ```
 ```{r}
@@ -226,7 +249,7 @@ TP =confusion1[2,2]
 FP =confusion1[1,2]
 FN =confusion1[2,1]
 precision =(TP)/(TP+FP)
-recall_score =(FP)/(FP+TN)
+recall_score =(TP)/(TP+FN)
 f1_score=2*((precision*recall_score)/(precision+recall_score))
 accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
 False_positive_rate =(FP)/(FP+TN)
@@ -239,9 +262,9 @@ print(paste('recall_score for test', recall_score))
 ```
 
 ```{r}
-control <- rpart.control(minsplit = 5,
-    minbucket = round(5 / 3),
-    maxdepth = 6,
+control <- rpart.control(minsplit = 7,
+    minbucket = 7,
+    maxdepth = 30,
     cp = 0)
 tune_fit <- rpart(stroke~., data = trainrose , method = 'class', control = control)
 rpart.plot(tune_fit, extra = 106)
@@ -253,7 +276,7 @@ TP =table_mat[2,2]
 FP =table_mat[1,2]
 FN =table_mat[2,1]
 precision =(TP)/(TP+FP)
-recall_score =(FP)/(FP+TN)
+recall_score =(TP)/(TP+FN)
 f1_score=2*((precision*recall_score)/(precision+recall_score))
 accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
 False_positive_rate =(FP)/(FP+TN)
@@ -289,7 +312,7 @@ TP =confusion_mtx[2,2]
 FP =confusion_mtx[1,2]
 FN =confusion_mtx[2,1]
 precision =(TP)/(TP+FP)
-recall_score =(FP)/(FP+TN)
+recall_score =(TP)/(TP+FN)
 f1_score=2*((precision*recall_score)/(precision+recall_score))
 accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
 False_positive_rate =(FP)/(FP+TN)
@@ -303,16 +326,25 @@ print(paste('recall_score for test', recall_score))
 # rf 1
 ```{r}
 x = subset(trainrose, select = -c(age,ever_married,Residence_type))
-classifier_RF1 = randomForest(x = x,
-                             y = trainrose$stroke,
+test = subset(test, select = -c(age,ever_married,Residence_type))
+
+```
+```{r}
+classifier_RF1 = randomForest(x = x[-8],
+                             y = x$stroke,
                              ntree = 500)
   
 classifier_RF1
+test
+```
+
+```{r}
+test[-8]
 ```
 
 ```{r}
 # Predicting the Test set results
-y_pred = predict(classifier_RF, newdata = test[-11])
+y_pred = predict(classifier_RF1, newdata = test[-8])
 
 # Confusion Matrix
 confusion_mtx = table(test$stroke, y_pred)
@@ -322,7 +354,7 @@ TP =confusion_mtx[2,2]
 FP =confusion_mtx[1,2]
 FN =confusion_mtx[2,1]
 precision =(TP)/(TP+FP)
-recall_score =(FP)/(FP+TN)
+recall_score =(TP)/(TP+FN)
 f1_score=2*((precision*recall_score)/(precision+recall_score))
 accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
 False_positive_rate =(FP)/(FP+TN)
