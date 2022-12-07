@@ -1,0 +1,262 @@
+title: "Brain Stroke Prediction"
+author: "Team Sage"
+date: "`r Sys.Date()`"
+output:  
+    rmdformats::readthedown:
+      toc_float: true
+      number_sections: true
+      
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+options(scipen = 999,  digits = 3, big.mark=",", warn = -1)
+```
+
+```{r basicfunct, include=FALSE}
+loadPkg = function(x) { if (!require(x,character.only=T, quietly =T)) { install.packages(x,dep=T,repos="http://cran.us.r-project.org"); if(!require(x,character.only=T)) stop("Package not found") } }
+```
+
+
+```{r basic_libraries, include=FALSE}
+
+library(ggplot2)
+library(gridExtra)
+library(corrplot)
+library(ROSE)
+library(dplyr)
+library(caTools)
+library(randomForest)
+
+```
+
+```{r load_csv}
+
+df = read.csv("healthcare-dataset-stroke-data.csv")
+
+summary(df)
+
+```
+
+
+
+
+
+```{r desc, include=TRUE}
+
+colnames(df)=tolower(make.names(colnames(df)))
+df$gender<-as.factor(df$gender)
+df$ever_married<-as.factor(df$ever_married)
+df$work_type<- factor(df$work_type)
+df$residence_type<- factor(df$residence_type)
+df$smoking_status <- factor(df$smoking_status)
+df$heart_disease <- as.factor(df$heart_disease)
+df$hypertension <- as.factor(df$hypertension)
+df$stroke <- as.factor(df$stroke)
+df$age <- as.integer(df$age)
+
+dim(df)
+str(df)
+
+```
+
+
+
+
+
+```{r summary_after_cleaning, include=TRUE}
+
+
+#omit N/A in bmi column
+str(df$bmi)
+df <- df[-which(df$bmi=='N/A'),]
+
+#change bmi varible to numeric
+df$bmi <- as.numeric(as.character(df$bmi))
+dim(df)
+
+df <- df[-which(df$gender=='Other'),]
+
+df$id <-NULL
+
+
+
+
+
+
+```
+
+```{r subsets, include=FALSE}
+
+logit  <- glm(stroke ~ age + avg_glucose_level + heart_disease + hypertension + bmi + ever_married + bmi, family=binomial (link="logit"), data=df)
+summary(logit)
+```
+
+
+
+```{r}
+set.seed(1234)
+trainIndex = sample(1:nrow(df), size=round(0.75*nrow(df)), replace=FALSE)
+train <- df[trainIndex,]
+test  <- df[-trainIndex,]
+dim(train); dim(test)
+
+logit  <- glm(stroke ~ age, family=binomial (link="logit"), data=train)
+
+test_x <- test[ , c(1:10)]
+predlogit <- predict(logit, newdata=test_x, type="response")
+predlogit <- ifelse(predlogit>0.5, 1, 0)
+
+ClassificationError <- mean(predlogit != test$stroke) 
+print(paste("Accuracy = ", 1-ClassificationError))        
+table(test$stroke, predlogit) 
+```
+
+```{r}
+
+
+plot(df$stroke)
+
+
+prop.table(table(df$stroke))
+table(df$stroke)
+
+```
+
+
+
+
+
+
+
+
+```{r}
+
+set.seed(1234)
+logitrose  <- glm(stroke ~., family=binomial (link="logit"), data=train)
+testrose_x <- test
+predlogitrose <- predict(logitrose, newdata=test, type="response")
+confusion <- table(test$stroke, predlogitrose >= 0.5)
+confusion
+
+
+
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(TP)/(TP+FN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+False_positive_rate =(FP)/(FP+TN)
+False_negative_rate =(FN)/(FN+TP)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('False_positive_rate', False_positive_rate))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+```
+
+
+
+```{r}
+table(train$stroke)
+table(trainrose$stroke)
+```
+
+
+```{r}
+
+library(rpart)
+library(rpart.plot)
+fit <- rpart(stroke~., data = train , method = 'class')
+rpart.plot(fit, extra = 106)
+
+
+```
+```{r}
+
+predict_unseen <-predict(fit, test, type = 'class')
+confusion1 <- table(test$stroke, predict_unseen)
+confusion1
+TN =confusion1[1,1]
+TP =confusion1[2,2]
+FP =confusion1[1,2]
+FN =confusion1[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(FP)/(FP+TN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+False_positive_rate =(FP)/(FP+TN)
+False_negative_rate =(FN)/(FN+TP)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('False_positive_rate', False_positive_rate))
+print(paste('f1_score for test', f1_score))
+
+
+
+
+```
+
+
+
+
+```{r}
+
+
+library(caTools)
+library(randomForest)
+
+set.seed(120)  # Setting seed
+classifier_RF = randomForest(x = train[-11],
+                             y = train$stroke,
+                             ntree = 500)
+  
+classifier_RF
+  
+# Predicting the Test set results
+y_pred = predict(classifier_RF, newdata = test[-11])
+table_mat1 <- table(test$stroke, y_pred)
+table_mat1
+accuracy_Test1 <- sum(diag(table_mat1)) / sum(table_mat1)
+print(paste('Accuracy for test', accuracy_Test1))
+
+  
+# Confusion Matrix
+confusion2 = table(test$stroke, y_pred)
+confusion2
+  
+
+
+
+```
+
+```{r}
+
+
+
+TN =confusion2[1,1]
+TP =confusion2[2,2]
+FP =confusion2[1,2]
+FN =confusion2[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(TP)/(TP+FN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+False_positive_rate =(FP)/(FP+TN)
+False_negative_rate =(FN)/(FN+TP)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('False_positive_rate', False_positive_rate))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+
+
+
+```
+
+
+
+
