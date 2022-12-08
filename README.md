@@ -22,4 +22,5 @@ Presently there are a total of 5,110 entries with 12 features (columns). There a
            0 if the patient did not have a stroke
            
 ### Additional information about the dataset can be found on Kaggle:
+
 https://www.kaggle.com/datasets/fedesoriano/stroke-prediction-dataset
