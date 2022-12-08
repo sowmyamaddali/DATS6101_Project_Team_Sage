@@ -1,3 +1,4 @@
+---
 title: "Brain Stroke Prediction"
 author: "Team Sage"
 date: "`r Sys.Date()`"
@@ -8,139 +9,169 @@ output:
       
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
-options(scipen = 999,  digits = 3, big.mark=",", warn = -1)
-```
-
-```{r basicfunct, include=FALSE}
-loadPkg = function(x) { if (!require(x,character.only=T, quietly =T)) { install.packages(x,dep=T,repos="http://cran.us.r-project.org"); if(!require(x,character.only=T)) stop("Package not found") } }
-```
-
-
 ```{r basic_libraries, include=FALSE}
+
+library(ggplot2)
+sessionInfo()
+library(mlbench)
+library(caret)
 
 library(ggplot2)
 library(gridExtra)
 library(corrplot)
 library(ROSE)
 library(dplyr)
+library(smotefamily)
 library(caTools)
 library(randomForest)
-
+library(rpart)
+library(rpart.plot)
 ```
 
 ```{r load_csv}
-
-df = read.csv("healthcare-dataset-stroke-data.csv")
-
-summary(df)
-
+stroke_df = read.csv("healthcare-dataset-stroke-data.csv")
 ```
-
-
-
-
 
 ```{r desc, include=TRUE}
-
-colnames(df)=tolower(make.names(colnames(df)))
-df$gender<-as.factor(df$gender)
-df$ever_married<-as.factor(df$ever_married)
-df$work_type<- factor(df$work_type)
-df$residence_type<- factor(df$residence_type)
-df$smoking_status <- factor(df$smoking_status)
-df$heart_disease <- as.factor(df$heart_disease)
-df$hypertension <- as.factor(df$hypertension)
-df$stroke <- as.factor(df$stroke)
-df$age <- as.integer(df$age)
-
-dim(df)
-str(df)
-
+head(stroke_df)
 ```
 
+```{r data_cleaning}
+# converting the numeric variables to factor variables
+stroke_df = subset(stroke_df, select = -c(id))
+stroke_df$gender = as.factor(stroke_df$gender)
+stroke_df$hypertension = as.factor(stroke_df$hypertension)
+stroke_df$heart_disease = as.factor(stroke_df$heart_disease)
+stroke_df$ever_married = as.factor(stroke_df$ever_married)
+stroke_df$bmi = as.numeric(stroke_df$bmi)
+stroke_df$stroke = as.factor(stroke_df$stroke)
+stroke_df$work_type = as.factor(stroke_df$work_type)
+stroke_df$Residence_type = as.factor(stroke_df$Residence_type)
+stroke_df$smoking_status = as.factor(stroke_df$smoking_status)
+# To get the summary statistics of the dataset
+summary(stroke_df)
+```
+```{r find_na_fix}
+# To find the NA's in the dataset
+paste("The NA's in the dataset is:",sum(is.na(stroke_df)))
+```
 
-
-
+```{r na_fix}
+# Replacing NA values with average BMI value
+stroke_df$bmi[is.na(stroke_df$bmi)] = mean(stroke_df$bmi,na.rm = TRUE)
+paste("The NA's in the dataset after imputation of BMI with mean is:",sum(is.na(stroke_df)))
+```
 
 ```{r summary_after_cleaning, include=TRUE}
-
-
-#omit N/A in bmi column
-str(df$bmi)
-df <- df[-which(df$bmi=='N/A'),]
-
-#change bmi varible to numeric
-df$bmi <- as.numeric(as.character(df$bmi))
-dim(df)
-
-df <- df[-which(df$gender=='Other'),]
-
-df$id <-NULL
-
-
-
-
-
-
+# since we had only 1 data point in others category for gender we are removing it
+stroke_df = subset(stroke_df,gender!="Other")
+summary(stroke_df)
+```
+```{r subsets}
+# subsetting the data for various analyses 
+stroke_1 = subset(stroke_df, stroke == 1)
+stroke_0 = subset(stroke_df, stroke == 0)
+stroke_1_female = subset(stroke_df, stroke == 1 & gender == "Female")
+stroke_1_male = subset(stroke_df, stroke == 1 & gender == "Male")
+# creating different columns for bmi, age and average_glucose_level based on different bucketing for each variables
+dat <- within(stroke_df, {   
+  bmi.cat = NA # need to initialize variable
+  bmi.cat[bmi < 18.5] = "underweight"
+  bmi.cat[bmi >= 18.5 & bmi < 25] = "normal"
+  bmi.cat[bmi >= 25 & bmi < 30] = "overweight"
+  bmi.cat[bmi >= 30 & bmi < 40] = "obesity"
+  bmi.cat[bmi >=40] = "severe obesity" 
+  avg_gluc.cat = NA # need to initialize variable
+  avg_gluc.cat[avg_glucose_level < 60] = "Below 60"
+  avg_gluc.cat[avg_glucose_level >= 60 & avg_glucose_level < 90] = "60 - 90"
+  avg_gluc.cat[avg_glucose_level >= 90 & avg_glucose_level < 120] = "90 - 120"
+  avg_gluc.cat[avg_glucose_level >= 120 & avg_glucose_level < 180] = "120 - 180"
+  avg_gluc.cat[avg_glucose_level >= 180 & avg_glucose_level < 273] = "180 - 273"
+  age.cat = NA
+  age.cat[age<=20] = "Under 20"
+  age.cat[age>=21 & age<= 40 ] = "20-40"
+  age.cat[age>=41 & age<= 60 ] = "40-60"
+  age.cat[age>=61 & age<= 80 ] = "60-80"
+  age.cat[age>=80 ] = "above 80"
+   } )
+dat$bmi.cat<- factor(dat$bmi.cat,levels= c("underweight","normal","overweight","obesity","severe obesity" ))
+dat$avg_gluc.cat<- factor(dat$avg_gluc.cat,levels= c("Below 60","60 - 90","90 - 120","120 - 180","180 - 273" ))
+dat$age.cat<- factor(dat$age.cat,levels= c("Under 20","20-40","40-60","60-80","above 80"))
+dat$avg_gluc.cat = as.numeric(factor(dat$avg_gluc.cat))
+dat$bmi.cat = as.numeric(factor(dat$bmi.cat))
+dat$age.cat = as.numeric(factor(dat$age.cat))
+dat$avg_gluc.cat = factor(dat$avg_gluc.cat)
+dat$bmi.cat = factor(dat$bmi.cat)
+dat$age.cat = factor(dat$age.cat)
+str(dat)
 ```
 
-```{r subsets, include=FALSE}
+# Using the under and over sampling method (both)
 
-logit  <- glm(stroke ~ age + avg_glucose_level + heart_disease + hypertension + bmi + ever_married + bmi, family=binomial (link="logit"), data=df)
-summary(logit)
+```{r}
+# In the train data we are using under and oversampling to address the class imbalance problem
+ind <- sample(2, nrow(stroke_df), replace = TRUE, prob = c(0.7, 0.3))
+train <- stroke_df[ind==1,]
+test <- stroke_df[ind==2,]
+dim(train)
+dim(test)
+train <- ovun.sample(stroke~., data=train, method = "both",p = 0.5,seed = 222)$data
+r<-table(train$stroke)
+paste("Seeing if the class imabalance is fixed")
+r
+str(test)
+```
+# feature importance LVQ
+```{r}
+# ensure results are repeatable
+set.seed(7)
+# load the library
+
+
+# prepare training scheme
+control <- trainControl(method="repeatedcv", number=10, repeats=3)
+# train the model
+model <- train(stroke~., data=stroke_df, method="lvq", preProcess="scale", trControl=control)
+# estimate variable importance
+importance <- varImp(model, scale=FALSE)
+# summarize importance
+print(importance)
+# plot importance
+plot(importance)
 ```
 
+```{r}
+nrow(stroke_df[1:10])
+nrow(stroke_df[11])
+```
+
+# feature selection using rfe 
+```{r}
+#set.seed(7)
+# define the control using a random forest selection function
+#control <- rfeControl(functions=rfFuncs, method="cv", number=10)
+# run the RFE algorithm
+#results <- rfe(stroke_df[,-11], stroke_df[,11], sizes=c(1:10), rfeControl=control)
+# summarize the results
+#print(results)
+# list the chosen features
+#predictors(results)
+# plot the results
+#plot(results, type=c("g", "o"))
+```
+
+## LOGIT
 
 
 ```{r}
-set.seed(1234)
-trainIndex = sample(1:nrow(df), size=round(0.75*nrow(df)), replace=FALSE)
-train <- df[trainIndex,]
-test  <- df[-trainIndex,]
-dim(train); dim(test)
-
-logit  <- glm(stroke ~ age, family=binomial (link="logit"), data=train)
-
-test_x <- test[ , c(1:10)]
-predlogit <- predict(logit, newdata=test_x, type="response")
-predlogit <- ifelse(predlogit>0.5, 1, 0)
-
-ClassificationError <- mean(predlogit != test$stroke) 
-print(paste("Accuracy = ", 1-ClassificationError))        
-table(test$stroke, predlogit) 
-```
-
-```{r}
-
-
-plot(df$stroke)
-
-
-prop.table(table(df$stroke))
-table(df$stroke)
-
-```
-
-
-
-
-
-
-
-
-```{r}
-
+library(pROC)
+library(ROSE)
 set.seed(1234)
 logitrose  <- glm(stroke ~., family=binomial (link="logit"), data=train)
-testrose_x <- test
-predlogitrose <- predict(logitrose, newdata=test, type="response")
+predlogitrose <- predict(logitrose, newdata=test[-11], type="response")
 confusion <- table(test$stroke, predlogitrose >= 0.5)
 confusion
-
-
-
+# Eval Metric
 TN =confusion[1,1]
 TP =confusion[2,2]
 FP =confusion[1,2]
@@ -149,113 +180,563 @@ precision =(TP)/(TP+FP)
 recall_score =(TP)/(TP+FN)
 f1_score=2*((precision*recall_score)/(precision+recall_score))
 accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
-False_positive_rate =(FP)/(FP+TN)
-False_negative_rate =(FN)/(FN+TP)
 print(paste('Accuracy for test', accuracy_model))
 print(paste('precision for test', precision))
-print(paste('False_positive_rate', False_positive_rate))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+
+test_prob = predict(logitrose, test[-11], type = "response")
+test_roc = roc(test$stroke ~ test_prob, plot = TRUE, print.auc = TRUE)
+test_roc
+```
+
+## LOGIT with feature selected variables 
+
+
+# feature selection 1 
+```{r}
+library(ROSE)
+set.seed(1234)
+train_fe = subset(train, select = c(age,avg_glucose_level,work_type,hypertension,smoking_status,bmi,stroke))
+test_fe = subset(test, select = c(age,avg_glucose_level,work_type,hypertension,smoking_status,bmi,stroke))
+str(train_fe[-7])
+```
+```{r}
+logitrose  <- glm(stroke ~., family=binomial (link="logit"), data=train_fe)
+predlogitrose <- predict(logitrose, newdata=test_fe[-7], type="response")
+confusion <- table(test_fe$stroke, predlogitrose >= 0.5)
+confusion
+# Eval Metric
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(TP)/(TP+FN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+
+test_prob = predict(logitrose, test[-11], type = "response")
+test_roc = roc(test$stroke ~ test_prob, plot = TRUE, print.auc = TRUE)
+test_roc
+
+```
+
+## Decision Tree
+
+```{r}
+fit <- rpart(stroke~ ., data = train , method = 'class')
+rpart.plot(fit, extra = 106)
+```
+```{r}
+predict_unseen <-predict(fit, test[-11], type = 'class')
+confusion <- table(test$stroke, predict_unseen)
+confusion
+# Eval Metric
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(TP)/(TP+FN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+```
+
+## Decision Tree with feature selection
+
+```{r}
+fit <- rpart(stroke~ ., data = train_fe , method = 'class')
+rpart.plot(fit, extra = 106)
+```
+```{r}
+test_fe[-7]
+```
+
+```{r}
+predict_unseen <-predict(fit, test_fe[-7], type = 'class')
+confusion <- table(test_fe$stroke, predict_unseen)
+confusion
+# Eval Metric
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(TP)/(TP+FN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+```
+
+## tuned decision tree
+
+```{r}
+control <- rpart.control(minsplit = 5,
+    minbucket = round(5 / 3),
+    maxdepth = 6,
+    cp = 0)
+tune_fit <- rpart(stroke~., data = train , method = 'class', control = control)
+rpart.plot(tune_fit, extra = 106)
+```
+
+```{r}
+predict_unseen1 <-predict(tune_fit, test[-11], type = 'class')
+confusion <- table(test$stroke, predict_unseen1)
+confusion
+# Eval Metric
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(TP)/(TP+FN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
 print(paste('f1_score for test', f1_score))
 print(paste('recall_score for test', recall_score))
 ```
 
 
+## tuned decision tree with feature selection 
 
 ```{r}
-table(train$stroke)
-table(trainrose$stroke)
+control <- rpart.control(minsplit = 5,
+    minbucket = round(5 / 3),
+    maxdepth = 6,
+    cp = 0)
+tune_fit <- rpart(stroke~., data = train_fe , method = 'class', control = control)
+rpart.plot(tune_fit, extra = 106)
 ```
 
-
 ```{r}
-
-library(rpart)
-library(rpart.plot)
-fit <- rpart(stroke~., data = train , method = 'class')
-rpart.plot(fit, extra = 106)
-
-
-```
-```{r}
-
-predict_unseen <-predict(fit, test, type = 'class')
-confusion1 <- table(test$stroke, predict_unseen)
-confusion1
-TN =confusion1[1,1]
-TP =confusion1[2,2]
-FP =confusion1[1,2]
-FN =confusion1[2,1]
+predict_unseen1 <-predict(tune_fit, test_fe[-7], type = 'class')
+confusion <- table(test_fe$stroke, predict_unseen1)
+confusion
+# Eval Metric
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
 precision =(TP)/(TP+FP)
-recall_score =(FP)/(FP+TN)
+recall_score =(TP)/(TP+FN)
 f1_score=2*((precision*recall_score)/(precision+recall_score))
 accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
-False_positive_rate =(FP)/(FP+TN)
-False_negative_rate =(FN)/(FN+TP)
 print(paste('Accuracy for test', accuracy_model))
 print(paste('precision for test', precision))
-print(paste('False_positive_rate', False_positive_rate))
 print(paste('f1_score for test', f1_score))
-
-
-
-
+print(paste('recall_score for test', recall_score))
 ```
 
-
-
+## Random Forest 
 
 ```{r}
-
-
-library(caTools)
-library(randomForest)
-
-set.seed(120)  # Setting seed
 classifier_RF = randomForest(x = train[-11],
                              y = train$stroke,
                              ntree = 500)
   
 classifier_RF
-  
-# Predicting the Test set results
-y_pred = predict(classifier_RF, newdata = test[-11])
-table_mat1 <- table(test$stroke, y_pred)
-table_mat1
-accuracy_Test1 <- sum(diag(table_mat1)) / sum(table_mat1)
-print(paste('Accuracy for test', accuracy_Test1))
-
-  
-# Confusion Matrix
-confusion2 = table(test$stroke, y_pred)
-confusion2
-  
-
-
-
 ```
 
 ```{r}
-
-
-
-TN =confusion2[1,1]
-TP =confusion2[2,2]
-FP =confusion2[1,2]
-FN =confusion2[2,1]
+# Predicting the Test set results
+y_pred = predict(classifier_RF, newdata = test[-11])
+# Confusion Matrix
+confusion = table(test$stroke, y_pred)
+confusion
+# Eval Metric
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
 precision =(TP)/(TP+FP)
 recall_score =(TP)/(TP+FN)
 f1_score=2*((precision*recall_score)/(precision+recall_score))
 accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
-False_positive_rate =(FP)/(FP+TN)
-False_negative_rate =(FN)/(FN+TP)
 print(paste('Accuracy for test', accuracy_model))
 print(paste('precision for test', precision))
-print(paste('False_positive_rate', False_positive_rate))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+```
+
+
+## Random Forest with feature selected variables 
+```{r}
+classifier_RF1 = randomForest(x = train_fe[-7],
+                             y = train_fe$stroke,
+                             ntree = 500)
+  
+classifier_RF1
+```
+
+```{r}
+# Predicting the Test set results
+y_pred = predict(classifier_RF1, newdata = test_fe[-7])
+# Confusion Matrix
+confusion = table(test_fe$stroke, y_pred)
+confusion
+# Eval Metric
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(TP)/(TP+FN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
 print(paste('f1_score for test', f1_score))
 print(paste('recall_score for test', recall_score))
 
-
-
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Using ROSE techinque 
+
+```{r}
+set.seed(1234)
+trainIndex = sample(1:nrow(stroke_df), size=round(0.75*nrow(stroke_df)), replace=FALSE)
+train1 <- stroke_df[trainIndex,]
+test1  <- stroke_df[-trainIndex,]
+dim(train1)
+dim(test1)
+```
+
+# feature selection 1 
+```{r}
+library(ROSE)
+set.seed(1234)
+train_fe = subset(train1, select = c(age,avg_glucose_level,work_type,hypertension,smoking_status,bmi,stroke))
+test1_fe = subset(test1, select = c(age,avg_glucose_level,work_type,hypertension,smoking_status,bmi,stroke))
+dim(train_fe)
+dim(test1_fe)
+```
+# with feature selection 
+```{r}
+set.seed(1234)
+trainrose1<-ROSE(stroke~.,data=train_fe)$data
+ggplot(trainrose1, aes(x=stroke,fill=stroke))+geom_bar()+ggtitle("Distribution of Target varibale (Stroke)")+ theme_bw() +  theme()+ xlab("Stroke") + ylab("Count of people")
+```
+
+
+```{r}
+table(trainrose1$stroke)
+```
+
+# without feature selection 
+```{r}
+set.seed(1234)
+trainrose<-ROSE(stroke~.,data=train1)$data
+ggplot(trainrose, aes(x=stroke,fill=stroke))+geom_bar()+ggtitle("Distribution of Target varibale (Stroke)")+ theme_bw() +  theme()+ xlab("Stroke") + ylab("Count of people")
+```
+```{r}
+trainrose$age = abs(trainrose$age)
+trainrose$avg_glucose_level = abs(trainrose$avg_glucose_level)
+summary(trainrose)
+```
+
+
+```{r}
+trainrose1$age = abs(trainrose1$age)
+trainrose1$avg_glucose_level = abs(trainrose1$avg_glucose_level)
+summary(trainrose1)
+```
+```{r}
+table(train_fe$stroke)
+table(trainrose1$stroke)
+table(test1_fe$stroke)
+```
+
+
+## LOGIT Model 
+
+
+```{r}
+set.seed(1234)
+logitrose  <- glm(stroke ~., family=binomial (link="logit"), data=trainrose)
+predlogitrose <- predict(logitrose, newdata=test1[-11], type="response")
+confusion <- table(test1$stroke, predlogitrose >= 0.5)
+confusion
+# Eval Metric
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(TP)/(TP+FN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+```
+
+## LOGIT Model with feature selection 
+
+
+```{r}
+set.seed(1234)
+logitrose  <- glm(stroke ~., family=binomial (link="logit"), data=trainrose1)
+predlogitrose <- predict(logitrose, newdata=test1_fe[-7], type="response")
+confusion <- table(test1_fe$stroke, predlogitrose >= 0.5)
+confusion
+# Eval Metric
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(TP)/(TP+FN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+```
+## DECISION TREE
+
+```{r}
+fit <- rpart(stroke~ . , data = trainrose , method = 'class')
+rpart.plot(fit, extra = 106)
+```
+
+
+```{r}
+predict_unseen <-predict(fit, test1[-11], type = 'class')
+confusion <- table(test1$stroke, predict_unseen)
+confusion
+# Eval Metric
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(TP)/(TP+FN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+```
+## DECISION TREE with feature selection
+
+```{r}
+fit <- rpart(stroke~ . , data = trainrose1 , method = 'class')
+rpart.plot(fit, extra = 106)
+```
+
+
+```{r}
+predict_unseen <-predict(fit, test1_fe[-7], type = 'class')
+confusion <- table(test1_fe$stroke, predict_unseen)
+confusion
+# Eval Metric
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(TP)/(TP+FN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+```
+
+## Tuned decision tree
+
+```{r}
+control <- rpart.control(minsplit = 7,
+    minbucket = round(5 / 3),
+    maxdepth = 4,
+    cp = 0)
+tune_fit <- rpart(stroke~., data = trainrose , method = 'class', control = control)
+rpart.plot(tune_fit, extra = 106)
+predict_unseen1 <-predict(tune_fit, test1, type = 'class')
+confusion <- table(test1$stroke, predict_unseen1)
+confusion
+# Eval Metric
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(TP)/(TP+FN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+```
+
+## Tuned decision tree with feature selection 
+
+```{r}
+control <- rpart.control(minsplit = 7,
+    minbucket = round(5 / 3),
+    maxdepth = 4,
+    cp = 0)
+tune_fit <- rpart(stroke~., data = trainrose1 , method = 'class', control = control)
+rpart.plot(tune_fit, extra = 106)
+predict_unseen1 <-predict(tune_fit, test1_fe, type = 'class')
+confusion <- table(test1_fe$stroke, predict_unseen1)
+confusion
+# Eval Metric
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(TP)/(TP+FN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+```
+## Random Forest 
+
+```{r}
+classifier_RF = randomForest(x = trainrose[-11],
+                             y = trainrose$stroke,
+                             ntree = 500)
+  
+classifier_RF
+```
+
+```{r}
+# Predicting the Test set results
+y_pred = predict(classifier_RF, newdata = test1[-11])
+# Confusion Matrix
+confusion = table(test1$stroke, y_pred)
+confusion
+# Eval Metric
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(TP)/(TP+FN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+```
+
+## Random Forest with feature selection 
+
+```{r}
+classifier_RF = randomForest(x = trainrose1[-7],
+                             y = trainrose1$stroke,
+                             ntree = 500)
+  
+classifier_RF
+```
+
+```{r}
+# Predicting the Test set results
+y_pred = predict(classifier_RF, newdata = test1_fe[-7])
+# Confusion Matrix
+confusion = table(test1_fe$stroke, y_pred)
+confusion
+# Eval Metric
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(TP)/(TP+FN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
