@@ -22,3 +22,8 @@ Presently there are a total of 4,981 entries with 10 features (columns). There a
            
 ### Additional information can be found on Kaggle:
 https://www.kaggle.com/datasets/fedesoriano/stroke-prediction-dataset
+
+### MODEL Techniques:
+1. Logistic Regression
+2. Decision Tree classifier
+3. Random Forest Classifier
