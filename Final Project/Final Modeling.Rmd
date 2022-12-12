@@ -384,7 +384,7 @@ print(paste('Accuracy for test', accuracy_model))
 print(paste('precision for test', precision))
 print(paste('f1_score for test', f1_score))
 print(paste('recall_score for test', recall_score))
-varImp(classifier_RF)
+varImpPlot(classifier_RF)
 ```
 # Random forest with feature selection with 6 var
 ```{r}
