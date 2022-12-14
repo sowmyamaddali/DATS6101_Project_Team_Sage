@@ -417,6 +417,10 @@ A dataset is said to be imbalanced when the number of observations per class is 
 • Class 0 - No stroke patients-  cases.
 • Class 1 - Stroke patients - cases.
 
+ROC curve shows us the behavior of the classifier for every threshold by plotting two variables: the True Positive Rate (TPR) and the False Positive Rate (FPR).
+
+The Area Under the Curve (AUC) is the measure of the ability of a classifier to distinguish between classes and is used as a summary of the ROC curve.The higher the AUC, the better the performance of the model at distinguishing between the positive and negative classes.
+
 To reduce the imbalance dataset three sampling methods are performed. The samplers are,
 • Random OverSampler Examples
 • SMOTE
