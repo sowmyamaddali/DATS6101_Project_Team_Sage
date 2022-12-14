@@ -402,13 +402,13 @@ Accuracy is the number of correct predictions Total number of predictions.
 Accuracy = TP + TN / TP + TN + FP + FN  - (2)
 
 
-• TN – True Negative : Patient has no stroke and model classified as having no stroke.
+• TN – True Negative : A true negative is an outcome where the model correctly predicts the negative class, here Patient has no stroke and model classified as having no stroke.
 
-• TP – True Positive : Patient has a stroke and the model classifies it as a stroke.
+• TP – True Positive : A true positive is an outcome where the model correctly predicts the positive class, here Patient has a stroke and the model classifies it as a stroke.
 
-• FP – False Positive : A Patient who does nothave stroke is classified as a patient having a stroke.
+• FP – False Positive : A false positive is an outcome where the model incorrectly predicts the positive class, here Patient who does not have stroke is classified as a patient having a stroke.
 
-• FN – False Negative : A Patient who has a stroke but is classified as no stroke.
+• FN – False Negative : A false negative is an outcome where the model incorrectly predicts the negative class, here Patient who has a stroke but is classified as no stroke.
 
 
 # Handling Imbalanced Dataset:
