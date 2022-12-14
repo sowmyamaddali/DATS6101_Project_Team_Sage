@@ -530,7 +530,7 @@ print(paste('f1_score for test', f1_score))
 print(paste('recall_score for test', recall_score))
 ```
 
-### Decision Tree with feature selection
+### Decision Tree with feature selection..
 
 ```{r}
 fit <- rpart(stroke~ ., data = train_fe , method = 'class')
