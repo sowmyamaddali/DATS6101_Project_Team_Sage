@@ -1,0 +1,988 @@
+---
+title: "Brain Stroke Prediction"
+author: "Team Sage"
+date: "`r Sys.Date()`"
+output:  
+    rmdformats::readthedown:
+      toc_float: true
+      number_sections: true
+      
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+options(scipen = 999,  digits = 3, big.mark=",", warn = -1)
+```
+
+```{r basicfunct, include=FALSE}
+loadPkg = function(x) { if (!require(x,character.only=T, quietly =T)) { install.packages(x,dep=T,repos="http://cran.us.r-project.org"); if(!require(x,character.only=T)) stop("Package not found") } }
+```
+
+# Chapter 1: Introduction
+## Why Brain Stroke Prediction ? Prior research and analysis.
+A brain attack, also known as a stroke, it happens when something prevents the blood flow to a certain area of the brain or when a blood artery in the brain leaks. In 2020, stroke was the cause of 1 in 6 fatalities from cardiovascular disease. A stroke occurs in the United States every 40 seconds. One person has a stroke and dies every 3.5 minutes. In the US, there are more than 795,000 stroke victims annually. Of these, about 610,000 are new or first strokes. Nearly 1 in 4 strokes, or about 185,000, occur among persons who have already experienced a stroke. Ischemic strokes account for around 87% of all strokes Stroke is one of the leading causes of death and disability in the USA.Anyone can have a stroke, regardless of their age, gender, or background. According to the US Department of Health and Human Services' National Institutes of Health (NIH), 795,000 people in the US have strokes annually, and 137,000 of them will die.  According to the World Health Organization (WHO), stroke is the second most common cause of death worldwide, accounting for roughly 11% of all fatalities.
+
+Ref:[link](https://www.nichd.nih.gov/health/topics/stroke/conditioninfo/risk)
+
+# Chapter 2: Description of the Data
+## Source of the Data
+Presently, our dataset has a total of 5,110 observations across 12 variables. (See below for a readout of the dataset's structure and variable names.) Variable descriptions and additional information on the dataset comes from the following [Link.](https://www.kaggle.com/datasets/fedesoriano/stroke-prediction-dataset)
+
+```{r basic_libraries, include=FALSE}
+library(ggplot2)
+library(gridExtra)
+library(corrplot)
+library(ROSE)
+library(dplyr)
+library(smotefamily)
+library(caTools)
+library(randomForest)
+library(rpart)
+library(rpart.plot)
+library("pROC")
+```
+
+```{r load_csv, include=FALSE}
+stroke_df = read.csv("healthcare-dataset-stroke-data.csv")
+```
+
+```{r desc, include=TRUE}
+str(stroke_df)
+```
+
+- id (a unique identification number for each observation)
+- gender (3 categories "Male", "Female", or "Other")
+- age (age of the individual)
+- hypertension (blood pressure of an individual)
+- heart_disease (history of any heart disease previously noted)
+- ever_married (2 categories "No" or "Yes")
+- work_type (5 categories "children", "govt_job", "never_worked", "private", "self-employed")
+- residence_type (where does the individual reside "rural" or "urban")
+- avg_glucose_level (Average Blood Sugar level of an individual)
+- bmi (Body Mass Index of the individual)
+- smoking_status (smoking status of an individual)
+- stroke (Target variable "1" or "0") 
+
+## Data Manipulation and Cleaning 
+
+- Converting the character value columns to categorical values and numerical values based on the type of the column.
+- Checking for Null values in the dataset
+- Null value imputation with mean
+- subsetting the data into people who got stroke and the ones that didnt 
+- subsetting the data into male and females who got stroke 
+- created a separate categorical column for bmi using the bucketing system given in [Wikipedia](https://en.wikipedia.org/wiki/Body_mass_index)
+- created a separate categorical column for average glucose level and age
+
+For our exploratory data analysis, we ignored id because this is an independent variable and has no relationship with stroke. Following this we cleaned the dataset in which we removed the id.
+
+```{r data_cleaning, include=FALSE}
+stroke_df = subset(stroke_df, select = -c(id))
+# converting the numeric variables to factor variables
+stroke_df$gender = as.factor(stroke_df$gender)
+stroke_df$hypertension = as.factor(stroke_df$hypertension)
+stroke_df$heart_disease = as.factor(stroke_df$heart_disease)
+stroke_df$ever_married = as.factor(stroke_df$ever_married)
+stroke_df$bmi = as.numeric(stroke_df$bmi)
+stroke_df$stroke = as.factor(stroke_df$stroke)
+stroke_df$work_type = as.factor(stroke_df$work_type)
+stroke_df$Residence_type = as.factor(stroke_df$Residence_type)
+stroke_df$smoking_status = as.factor(stroke_df$smoking_status)
+# To get the summary statistics of the dataset
+summary(stroke_df)
+```
+
+```{r find_na_fix, include=FALSE}
+# To find the NA's in the dataset
+paste("The NA's in the dataset is:",sum(is.na(stroke_df)))
+```
+
+
+```{r na_fix, include=FALSE}
+# Replacing NA values with average BMI value
+stroke_df$bmi[is.na(stroke_df$bmi)] = mean(stroke_df$bmi,na.rm = TRUE)
+paste("The NA's in the dataset after imputation of BMI with mean is:",sum(is.na(stroke_df)))
+```
+
+```{r summary_after_cleaning, include=TRUE}
+# since we had only 1 data point in others category for gender we are removing it
+stroke_df = subset(stroke_df,gender!="Other")
+summary(stroke_df)
+```
+
+```{r subsets, include=FALSE}
+# subsetting the data for various analyses 
+stroke_1 = subset(stroke_df, stroke == 1)
+stroke_0 = subset(stroke_df, stroke == 0)
+stroke_1_female = subset(stroke_df, stroke == 1 & gender == "Female")
+stroke_1_male = subset(stroke_df, stroke == 1 & gender == "Male")
+# creating different columns for bmi, age and average_glucose_level based on different bucketing for each variables
+dat <- within(stroke_df, {   
+  bmi.cat = NA # need to initialize variable
+  bmi.cat[bmi < 18.5] = "underweight"
+  bmi.cat[bmi >= 18.5 & bmi < 25] = "normal"
+  bmi.cat[bmi >= 25 & bmi < 30] = "overweight"
+  bmi.cat[bmi >= 30 & bmi < 40] = "obesity"
+  bmi.cat[bmi >=40] = "severe obesity" 
+  avg_gluc.cat = NA # need to initialize variable
+  avg_gluc.cat[avg_glucose_level < 60] = "Below 60"
+  avg_gluc.cat[avg_glucose_level >= 60 & avg_glucose_level < 90] = "60 - 90"
+  avg_gluc.cat[avg_glucose_level >= 90 & avg_glucose_level < 120] = "90 - 120"
+  avg_gluc.cat[avg_glucose_level >= 120 & avg_glucose_level < 180] = "120 - 180"
+  avg_gluc.cat[avg_glucose_level >= 180 & avg_glucose_level < 273] = "180 - 273"
+  age.cat = NA
+  age.cat[age<=20] = "Under 20"
+  age.cat[age>=21 & age<= 40 ] = "20-40"
+  age.cat[age>=41 & age<= 60 ] = "40-60"
+  age.cat[age>=61 & age<= 80 ] = "60-80"
+  age.cat[age>=80 ] = "above 80"
+   } )
+dat$bmi.cat<- factor(dat$bmi.cat,levels= c("underweight","normal","overweight","obesity","severe obesity" ))
+dat$avg_gluc.cat<- factor(dat$avg_gluc.cat,levels= c("Below 60","60 - 90","90 - 120","120 - 180","180 - 273" ))
+dat$age.cat<- factor(dat$age.cat,levels= c("Under 20","20-40","40-60","60-80","above 80"))
+dat$avg_gluc.cat = as.numeric(factor(dat$avg_gluc.cat))
+dat$bmi.cat = as.numeric(factor(dat$bmi.cat))
+dat$age.cat = as.numeric(factor(dat$age.cat))
+dat$avg_gluc.cat = factor(dat$avg_gluc.cat)
+dat$bmi.cat = factor(dat$bmi.cat)
+dat$age.cat = factor(dat$age.cat)
+str(dat)
+```
+
+## Distribution of the numerical variables
+
+
+```{r numerical_variable_dist, include=TRUE}
+ggplot(stroke_df, aes(x=age)) +  geom_density(fill="skyblue", color="skyblue", alpha=0.5)+ theme_bw() + theme()+ ggtitle("Distribution for age")
+ggplot(stroke_df, aes(x=bmi)) +  geom_density(fill="pink", color="pink", alpha=0.5)+ theme_bw() + theme()+ ggtitle("Distribution for BMI")
+ggplot(stroke_df, aes(x=avg_glucose_level)) +  geom_density(fill="lightgreen", color="lightgreen", alpha=0.5)+ theme_bw() + theme()+ ggtitle("Distribution for Average Glucose Level")
+```
+
+## Distribution of Stroke (Target variable)
+
+The Target variable stroke here is imbalanced, and doing the balancing first would have an affect on the data, as the copies of the data made during under and over sampling would affect our analyses by changing the initial findings.
+
+
+```{r target_var, include=TRUE}
+ggplot(stroke_df, aes(x=stroke,fill=stroke))+geom_bar()+ggtitle("Distribution of Target variable (Stroke)")+ theme_bw() + theme()+ xlab("Stroke") + ylab("Count of people")
+```
+
+
+# Chapter 3: Exploratory Data Analysis & SMART Questions:
+## Can the type of job and smoking habbit of an individual cause stroke?
+
+**NULL HYPOTHESIS**<br>
+**H0: work_type and Smoking_status are independent of stroke**<br>
+**H1: work_type and Smoking_status are dependent of stroke **
+
+```{r job_smoking, include=TRUE}
+ggplot(stroke_1,aes(x=work_type, fill= smoking_status))+geom_bar(position = "dodge")+ggtitle("Distribution of people who had a stroke based on their smoking habits")+ theme_bw() + theme()+ xlab("Work Type") + ylab("Count of people ")
+```
+
+The above graph only includes those who have had a stroke, and we can see from the graph that most people in the private sector and self-employed have had a stroke, and it's worth noting that the two major causes of stroke were those who had never smoked and those who had formerly smoked.
+
+
+```{r gender_job_smoking, include=TRUE}
+ggplot(stroke_1_female,aes(x=work_type, fill= smoking_status))+geom_bar(position = "dodge")+ggtitle("Distribution of females who had a stroke based on their smoking habits")+ theme_bw() + theme()+ xlab("Work Type") + ylab("Count of people ")
+ggplot(stroke_1_male,aes(x=work_type, fill= smoking_status))+geom_bar(position = "dodge")+ggtitle("Distribution of males who had a stroke based on their smoking habits")+ theme_bw() + theme()+ xlab("Work Type") + ylab("Count of people ")
+```
+
+We wanted to see if gender combined with smoking status had anything to do with stroke after observing that smoking status had something to do with stroke. We first separated the data into females who had had a stroke and then males who had had a stroke. As seen in the graph above, the key causes that caused a stroke in females were never smoked and formerly smoked, whereas in males, the reason for stroke was formerly smoked and currently smoking in the private sector, and formerly smoked and never smoked in the self-employed sector.
+
+To see if these variables are dependent of stroke we did a chi square test for smoking_status and work_type .
+
+```{r chi_test, include=TRUE}
+ctest1 = chisq.test(dat$smoking_status, dat$stroke)
+ctest2 = chisq.test(dat$work_type, dat$stroke)
+ctest1
+ctest2
+```
+
+As we can see from the results, the p values for both tests are less than 0.05, thus we fail to accept the null hypothesis and infer that smoking status and work type are related to stroke.
+
+
+## Does aging really cause stroke?
+
+**NULL HYPOTHESIS**<br>
+**H0: There is no change in the mean of age with respect to stroke**<br>
+**H1: The means of age are changing with respect to stroke **
+
+```{r age_stroke_1, include=TRUE}
+ggplot(stroke_1, aes(x = age, fill=stroke))+ geom_density(alpha = 0.3)+ ggtitle("Density plot for age of people who had stroke")+ theme_bw() + theme()
+```
+
+In general, we know that as one gets older, the likelihood of contracting an illness increases. We wanted to see if this statement held true with our dataset. The above graph clearly shows that as one's age grows, the likelihood of having a stroke increases.
+
+We chose the ANOVA test because we wanted to examine if age played a role in a person suffering from stroke.
+```{r anova_test, include=TRUE}
+one.way <- aov(age ~ stroke, data = stroke_df)
+summary(one.way)
+```
+The ANOVA test result indicates that the p value is less than 0.05 and it is very significant, implying that as age increases, the likelihood of having a stroke increases regardless of gender.
+
+## Does aging with any other features increase the chances of getting a stroke?
+
+
+### Does BMI with age affect stroke?
+**NULL HYPOTHESIS**<br>
+**H0: BMI is independent of stroke**<br>
+**H1: BMI is dependent of stroke **
+
+As we saw in our previous analysis, the likelihood of someone having a stroke increases with age. We also wondered if other factors, such as BMI and average glucose level, affect a person's chances of having a stroke as they age.
+```{r age_bmi, include=TRUE}
+ggplot(stroke_1, aes(x=bmi, y=age, color=stroke))+geom_point(size=3)+ ggtitle("Scatter plot for age vs bmi for people who had a stroke")
+```
+
+The above graph is plotted for Age vs BMI, as we can observe that above the age of 60 the datapoints are concentrated towards a particular region. All of these point fall between the BMI ranging from 25-35 which is categorized as overweight and obese.
+
+```{r age_bmi.cat, include=TRUE}
+ggplot(dat, aes(x=bmi.cat,y = age, fill=stroke))+geom_boxplot()+ ggtitle("Boxplot for Age vs BMI(categorical)")
+```
+
+Since the previous scatter plot provided a rough estimate of where the majority of the strokes occurred. We decided to divide these BMI into different categories based on the information provided by [Wikipedia](https://en.wikipedia.org/wiki/Body_mass_index)
+
+The categories are encoded as:
+
+- Underweight - BMI < 18.5
+- Normal - BMI >= 18.5 and BMI <= 25
+- Overweight - BMI >= 25.0 and BMI <= 30
+- Obesity - BMI >= 30.0 and BMI < 40
+- "Extreme" or Severe Obesity - BMI >= 40 
+
+A boxplot was plotted after categorizing them based on Wikipedia information to see if there was any pattern for Age vs BMI categories. A few interesting findings are that if you have a normal BMI index, you can live a healthy lifestyle until the age of 73, but as your BMI index rises and you fall into the category of overweight, the chances of having a stroke is higher when you are almost 60 years old, and when your BMI index falls into the range of obesity and severe obesity, your chances of having a stroke is much early, That is if you fall under these categories the chances that someone will get a stroke is as early as he/she reaches 59 years or 52 years respectively.
+
+As a result, as your BMI increases, the age at which you have a stroke decreases.
+
+We also know from our previous analysis that age is related to stroke, and hence we are performing the chi-squared test for only BMI and stroke.
+
+```{r age_bmi.cat_chi_test, include=TRUE}
+ctest1 = chisq.test(dat$bmi.cat, dat$stroke)
+ctest1
+```
+As we can see from the chi-squared test, the p-value is less than 0.05, So we fail to accept the null hypothesis and can conclude that BMI is related to stroke.
+
+### Does Average glucose level with age affect stroke?
+**NULL HYPOTHESIS**<br>
+**H0: Average glucose level is independent of stroke**<br>
+**H1: Average glucose level is dependent of stroke **
+
+```{r age_avg_glucose, include=TRUE}
+stroke_1_dat = subset(dat, stroke==1 )
+ggplot(stroke_1_dat, aes(fill=avg_gluc.cat, y = age, x = avg_gluc.cat))+ geom_boxplot()+ ggtitle("Boxplot for Age vs Average Gluclose level(Categorical) for people with stroke")
+```
+
+We can see how sugar levels affect the chances of someone having a stroke from this graph, which is plotted for Age vs Average Glucose Level. According to this graph, if your sugar level is below 60 (i.e. very low sugar), your chances of having a stroke are at an early stage in life, which is around 53 years, if your sugar level increases and falls in the range of 60-90, your chances of having a stroke are higher as you reach 58 years, and if you have a sugar level within the range 90-120 (i.e. normal blood sugar range), your chances of having a stroke are when you reach 60 years. When your blood sugar is in the range of 120 - 180 (high blood sugar), you can say that your chances of having a stroke are at 62 years old, and the same goes for ranges 180 - 273. (very high blood sugar level).
+
+Since we can see that average glucose level in the body along with age is somehow affecting the chances of a person having a stroke. From our previous analysis we can say that age definitely has an affect on stroke, now we are going to look if the average glucose level has any effect on stroke using chi-squared test.
+
+```{r avg_glucose_level_chi_tests, include=TRUE}
+ctest1 = chisq.test(dat$avg_gluc.cat, dat$stroke)
+ctest1
+```
+We can see from this test that the p-value is less than 0.05, so we cannot accept the null hypothesis and can conclude that average glucose level is dependent on stroke.
+
+### Can Hypertension be a reason for an individual to suffer from a stroke?
+**NULL HYPOTHESIS**<br>
+**H0: Hypertension is independent of stroke**<br>
+**H1: Hypertension is dependent of stroke **
+
+```{r age_hypertension, include=TRUE}
+ggplot(data = stroke_df, aes(x=as.character(hypertension), y=age, fill=hypertension)) +
+    geom_boxplot() +
+    labs(title="Age distribution by hypertension", x="hypertension", y="age")
+```
+
+A major risk factor for stroke is high blood pressure. HBP makes your heart work harder and gradually damages your organs and arteries. You are more prone to get a stroke due to hypertension as you age. So as the age increases the chances of getting hypertension for an individual is higher which leads to stroke.
+Ref:['link.'](https://www.stroke.org/-/media/Stroke-Files/Lets-Talk-About-Stroke/Risk-Factors/Stroke-and-High-Blood-Pressure-ucm_493407.pdf).
+
+
+```{r}
+ctest3 = chisq.test(stroke_df$hypertension, stroke_df$stroke)
+ctest3
+```
+As we can observe that the p-value is less than 0.05, we fail to accept the null hypothesis and hence we can conclude that hypertension is dependent of stroke.
+
+### Can heart disease be a reason for an individual to suffer from a stroke?
+**NULL HYPOTHESIS**<br>
+**H0: Heart disease is independent of stroke**<br>
+**H1: Heart disease is dependent of stroke **
+
+```{r age_heart_disease, include=TRUE}
+ggplot(data = stroke_df, aes(x=as.character(heart_disease ), y=age, fill=heart_disease)) +
+    geom_boxplot() +
+    labs(title="Age distribution by heart_disease ", x="heart_disease ", y="age")
+```
+
+Heart disorders can increase your risk for stroke. 
+So from the plot we can see that as age increases the chances of getting a heart disease for an individual also increases which leads to stroke. 
+
+Ref: ["link."](https://www.cdc.gov/stroke/risk_factors.htm#:~:text=Heart%20disease,rich%20blood%20to%20the%20brain.).
+
+```{r}
+ctest4 = chisq.test(stroke_df$heart_disease, stroke_df$stroke)
+ctest4
+```
+As we can observe that the p-value is less than 0.05, we fail to accept the null hypothesis and hence we can conclude that heart disease is dependent of stroke.
+
+## Does residence type cause stroke?
+
+
+**NULL HYPOTHESIS**<br>
+**H0: Residence Type is independent of stroke**<br>
+**H1: Residence Type is dependent of stroke **
+
+
+```{r}
+ggplot(stroke_1_dat, aes(x=Residence_type,fill=Residence_type))+geom_bar(position = "dodge")+ggtitle("People Having stroke in Urban and Rural Area (People Affected by stroke)")+ theme_bw() +theme()+ xlab("Residence Type") + ylab("Number of people")
+```
+
+We can see that number of people who are affected by stroke in Urban is higher when compared to number of people affected by stroke in Rural. The above graph represents only stroke affected people in Rural and Urban Residence. For further analysis, to check what other factors in residence causes that are related to stroke we chose smoking habits and work environment of the people.
+```{r}
+ggplot(stroke_1_dat,aes(x=Residence_type,fill=work_type))+geom_bar(position="dodge")+ggtitle("Work Type of Rural and Urban - People who are affected by stroke ")+theme()+theme_bw()+ylab("No of people")
+```
+
+A review of numerous research found that working in a high-stress environment may increase the risk of stroke. The meta-analysis is published in the October 14, 2015, online issue of Neurology, the medical journal of the American Academy of Neurology. 
+From the above graph we can see that the number of people who works in private has higher risk of getting stroke in both rural and urban. We can also see that people who are working in self-employed sectors also
+get stroke.
+Ref:["link."](https://www.aan.com/PressRoom/Home/PressRelease/1412#:~:text=Having%20a%20high%20stress%20job,the%20American%20Academy%20of%20Neurology.)
+
+```{r}
+ggplot(stroke_1_dat,aes(x=Residence_type,fill=smoking_status))+geom_bar(position="dodge")+ggtitle("Smoking habit of Rural and Urban - People who are affected by stroke ")+theme()+theme_bw()+ylab("No of people")
+```
+
+Stroke risk is boosted by smoking by 20–30%. More than 8,000 stroke fatalities are brought on by smoke exposure each year. Smoking alters the working of heart, blood, and vascular systems, which raises your chance of suffering a heart attack.
+From the above graph we can see that the smoking habits of people who suffered stroke in both rural and urban. Ref:["link."](https://www.cdc.gov/tobacco/campaign/tips/diseases/heart-disease-stroke.html#:~:text=Secondhand%20smoke%20increases%20the%20risk,of%20having%20a%20heart%20attack.). Even though smoking also has an effect on causing stroke, surprisingly people who won't smoke have suffered stroke (According to this data). 
+
+```{r}
+ch<-table(stroke_df$Residence_type, stroke_df$stroke)  
+chisq.test(stroke_df$Residence_type, stroke_df$stroke)
+```
+
+# Model Techniques
+
+1. Logistic Regression
+2. Decision Tree Classifier
+3. Random Forest Classifier
+
+## Logistic Regression:
+Logistic Regression is a type of statistical model (also known as logit model) is often used for classification and predictive analytics. Logistic regression estimates the probability of an event occurring, such as voted or didn’t vote, based on a given dataset of independent variables. Since the outcome is a probability, the dependent variable is bounded between 0 and 1.
+
+Logit(pi) = 1/(1+ exp(-pi))
+
+ln(pi/(1-pi)) = Beta_0 + Beta_1 * X_1 + … + B_k * K_k
+
+## Decision Tree classifier:
+Decision Tree is the most powerful and popular tool for classification and prediction. A Decision tree is a flowchart-like tree structure, where each internal node denotes a test on an attribute, each branch represents an outcome of the test, and each leaf node (terminal node) holds a class label. 
+
+
+## Random Forest Classifier:
+The Random forest classifier creates a set of decision trees from a randomly selected subset of the training set. It is basically a set of decision trees (DT) from a randomly selected subset of the training set and then It collects the votes from different decision trees to decide the final prediction.
+
+
+
+# Chapter: Evaluation Metrics
+Recall and Accuracy were selected as classification metrics for comparing the performance results of different models with respect to two classes.
+
+• Class 0- No stroke Cases.
+
+• Class 1- Stroke Cases.
+
+
+Recall:
+
+Recall or Sensitivity is defined as the fraction of correctly identified positives.
+
+
+
+Recall = T P / T P + FN - (1)
+
+Accuracy:
+
+Accuracy is the number of correct predictions Total number of predictions.
+
+Accuracy = TP + TN / TP + TN + FP + FN  - (2)
+
+
+• TN – True Negative : Patient has no stroke and model classified as having no stroke.
+
+• TP – True Positive : Patient has a stroke and the model classifies it as a stroke.
+
+• FP – False Positive : A Patient who does nothave stroke is classified as a patient having a stroke.
+
+• FN – False Negative : A Patient who has a stroke but is classified as no stroke.
+
+
+# Handling Imbalanced Dataset:
+
+A dataset is said to be imbalanced when the number of observations per class is not equally distributed among the training dataset.There has been a heavy class imbalance in our dataset where there is more number of patients with no stroke and less number of patients with stroke.
+• Class 0 - No stroke patients-  cases.
+• Class 1 - Stroke patients - cases.
+
+To reduce the imbalance dataset three sampling methods are performed. The samplers are,
+• Random OverSampler Examples
+• SMOTE
+
+
+## SMOTE
+
+```{r,results=T}
+set.seed(80)
+# In the train data we are using under and oversampling to address the class imbalance problem
+ind <- sample(2, nrow(stroke_df), replace = TRUE, prob = c(0.7, 0.3))
+train <- stroke_df[ind==1,]
+test <- stroke_df[ind==2,]
+
+train <- ovun.sample(stroke~., data=train, method = "both",p = 0.5,seed = 222)$data
+r<-table(train$stroke)
+
+```
+
+
+
+### LOGIT
+
+
+```{r}
+set.seed(123)
+logitrose  <- glm(stroke ~., family=binomial (link="logit"), data=train)
+predlogitrose <- predict(logitrose, newdata=test[-11], type="response")
+confusion <- table(test$stroke, predlogitrose >= 0.5)
+confusion
+# Eval Metric
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(TP)/(TP+FN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+test_prob = predict(logitrose, test[-11], type = "response")
+test_roc = roc(test$stroke ~ test_prob, plot = TRUE, print.auc = TRUE)
+test_roc
+```
+
+### LOGIT with feature selected variables 
+
+
+```{r}
+
+set.seed(1234)
+train_fe = subset(train, select = c(age,avg_glucose_level,work_type,hypertension,smoking_status,bmi,stroke))
+test_fe = subset(test, select = c(age,avg_glucose_level,work_type,hypertension,smoking_status,bmi,stroke))
+str(train_fe[-7])
+```
+
+
+
+```{r}
+logitrose  <- glm(stroke ~., family=binomial (link="logit"), data=train_fe)
+predlogitrose <- predict(logitrose, newdata=test_fe[-7], type="response")
+confusion <- table(test_fe$stroke, predlogitrose >= 0.5)
+confusion
+#plot(density(predlogitrose))
+# Eval Metric
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(TP)/(TP+FN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+test_prob = predict(logitrose, test_fe[-7], type = "response")
+test_roc = roc(test_fe$stroke ~ test_prob, plot = TRUE, print.auc = TRUE)
+test_roc
+```
+
+
+### Decision Tree
+Decision Trees are versatile machine learning algorithm that carry out both classification and regression tasks. They are extremely powerful algorithms that can successfully fit complex datasets.
+Ref:["Link"](https://www.guru99.com/r-decision-trees.html)
+
+```{r}
+fit <- rpart(stroke~ ., data = train , method = 'class')
+rpart.plot(fit, extra = 106)
+```
+```{r}
+predict_unseen <-predict(fit, test[-11], type = 'class')
+confusion <- table(test$stroke, predict_unseen)
+
+# Eval Metric
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(TP)/(TP+FN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+```
+
+### Decision Tree with feature selection
+
+```{r}
+fit <- rpart(stroke~ ., data = train_fe , method = 'class')
+rpart.plot(fit, extra = 106)
+```
+
+
+```{r}
+predict_unseen <-predict(fit, test_fe[-7], type = 'class')
+confusion <- table(test_fe$stroke, predict_unseen)
+confusion
+# Eval Metric
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(TP)/(TP+FN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+```
+
+### Tuned decision tree
+Decision tree in R has various parameters that control aspects of the fit. In rpart decision tree library, we can control the parameters using the rpart.control() function. In the following code we have introduced the parameters that need to be tuned.
+
+
+```{r,results=T}
+control <- rpart.control(minsplit = 5,
+    minbucket = round(5 / 3),
+    maxdepth = 6,
+    cp = 0)
+tune_fit <- rpart(stroke~., data = train , method = 'class', control = control)
+rpart.plot(tune_fit, extra = 106)
+```
+
+```{r}
+predict_unseen1 <-predict(tune_fit, test[-11], type = 'class')
+confusion <- table(test$stroke, predict_unseen1)
+# Eval Metric
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(TP)/(TP+FN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+```
+
+
+### Tuned decision tree with feature selection - ROSE Technique
+
+```{r}
+control <- rpart.control(minsplit = 5,
+    minbucket = round(5 / 3),
+    maxdepth = 6,
+    cp = 0)
+tune_fit <- rpart(stroke~., data = train_fe , method = 'class', control = control)
+rpart.plot(tune_fit, extra = 106)
+```
+
+```{r}
+predict_unseen1 <-predict(tune_fit, test_fe[-7], type = 'class')
+confusion <- table(test_fe$stroke, predict_unseen1)
+
+# Eval Metric
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(TP)/(TP+FN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+```
+
+### Random Forest 
+Random Forest is a collection of decision trees. To obtain more precise predictions, it constructs and merges several decision trees. The classification algorithm is non-linear. When utilized independently, each decision tree model is used.
+Ref:["Link"](https://www.geeksforgeeks.org/random-forest-approach-in-r-programming/)
+
+```{r}
+classifier_RF = randomForest(x = train[-11],
+                             y = train$stroke,
+                             ntree = 500)
+  
+classifier_RF
+```
+```{r,results=T}
+# Predicting the Test set results
+y_pred = predict(classifier_RF, newdata = test[-11])
+# Confusion Matrix
+confusion = table(test$stroke, y_pred)
+
+# Eval Metric
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(TP)/(TP+FN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+varImpPlot(classifier_RF)
+```
+
+### Random forest with Feature selection
+
+```{r}
+train_fe1 = subset(train, select = c(age,avg_glucose_level,work_type,hypertension,smoking_status,bmi,stroke))
+test_fe1 = subset(test, select = c(age,avg_glucose_level,work_type,hypertension,smoking_status,bmi,stroke))
+
+classifier_RF = randomForest(x = train_fe1[-7],
+                             y = train_fe1$stroke,
+                             ntree = 500,importance = TRUE)
+classifier_RF
+```
+
+```{r}
+# Predicting the Test set results
+y_pred = predict(classifier_RF, newdata = test_fe1[-7])
+# Confusion Matrix
+confusion = table(test_fe1$stroke, y_pred)
+# Eval Metric
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(TP)/(TP+FN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+classifier_RF$importance
+```
+
+### Random Forest with feature selected variables 
+
+```{r}
+classifier_RF1 = randomForest(x = train_fe[-7],
+                             y = train_fe$stroke,
+                             ntree = 500)
+classifier_RF1
+```
+
+```{r}
+# Predicting the Test set results
+y_pred = predict(classifier_RF1, newdata = test_fe[-7])
+# Confusion Matrix
+confusion = table(test_fe$stroke, y_pred)
+
+# Eval Metric
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(TP)/(TP+FN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+```
+
+## Random Over Sampler Examples (ROSE)
+
+Random OverSampler method is an oversampling technique. It aims to increases the number of minority class members in the training set. 
+
+
+```{r}
+set.seed(1234)
+trainIndex = sample(1:nrow(stroke_df), size=round(0.75*nrow(stroke_df)), replace=FALSE)
+train1 <- stroke_df[trainIndex,]
+test1  <- stroke_df[-trainIndex,]
+
+```
+
+```{r}
+library(ROSE)
+set.seed(1234)
+train_fe = subset(train1, select = c(age,avg_glucose_level,work_type,hypertension,smoking_status,bmi,stroke))
+test1_fe = subset(test1, select = c(age,avg_glucose_level,work_type,hypertension,smoking_status,bmi,stroke))
+
+```
+```{r}
+set.seed(1234)
+trainrose1<-ROSE(stroke~.,data=train_fe)$data
+```
+
+
+```{r}
+set.seed(1234)
+trainrose<-ROSE(stroke~.,data=train1)$data
+
+```
+```{r}
+trainrose$age = abs(trainrose$age)
+trainrose$avg_glucose_level = abs(trainrose$avg_glucose_level)
+summary(trainrose)
+```
+
+
+```{r}
+trainrose1$age = abs(trainrose1$age)
+trainrose1$avg_glucose_level = abs(trainrose1$avg_glucose_level)
+summary(trainrose1)
+```
+
+### LOGIT Model 
+
+
+```{r}
+set.seed(1234)
+logitrose  <- glm(stroke ~., family=binomial (link="logit"), data=trainrose)
+predlogitrose <- predict(logitrose, newdata=test1[-11], type="response")
+confusion <- table(test1$stroke, predlogitrose >= 0.5)
+
+# Eval Metric
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(TP)/(TP+FN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+test_prob = predict(logitrose, test1[-11], type = "response")
+test_roc = roc(test1$stroke ~ test_prob, plot = TRUE, print.auc = TRUE)
+test_roc
+```
+
+### LOGIT Model with feature selection 
+
+
+```{r}
+set.seed(1234)
+logitrose  <- glm(stroke ~., family=binomial (link="logit"), data=trainrose1)
+predlogitrose <- predict(logitrose, newdata=test1_fe[-7], type="response")
+confusion <- table(test1_fe$stroke, predlogitrose >= 0.5)
+confusion
+# Eval Metric
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(TP)/(TP+FN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+test_prob = predict(logitrose, test1_fe[-11], type = "response")
+test_roc = roc(test1_fe$stroke ~ test_prob, plot = TRUE, print.auc = TRUE)
+```
+### DECISION TREE
+
+```{r,results=T}
+fit <- rpart(stroke~ . , data = trainrose , method = 'class')
+rpart.plot(fit, extra = 106)
+```
+
+
+```{r,results=T}
+predict_unseen <-predict(fit, test1[-11], type = 'class')
+confusion <- table(test1$stroke, predict_unseen)
+confusion
+# Eval Metric
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(TP)/(TP+FN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+FPR = FP/(FP+TN)
+TPR = (TP)/(TP+FN)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+```
+### DECISION TREE with feature selection
+
+```{r,results=T}
+fit <- rpart(stroke~ . , data = trainrose1 , method = 'class')
+rpart.plot(fit, extra = 106)
+```
+
+
+```{r}
+predict_unseen <-predict(fit, test1_fe[-7], type = 'class')
+confusion <- table(test1_fe$stroke, predict_unseen)
+confusion
+# Eval Metric
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(TP)/(TP+FN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+```
+
+### Tuned decision tree
+
+```{r}
+control <- rpart.control(minsplit = 7,
+    minbucket = round(5 / 3),
+    maxdepth = 4,
+    cp = 0)
+tune_fit <- rpart(stroke~., data = trainrose , method = 'class', control = control)
+rpart.plot(tune_fit, extra = 106)
+predict_unseen1 <-predict(tune_fit, test1, type = 'class')
+confusion <- table(test1$stroke, predict_unseen1)
+confusion
+# Eval Metric
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(TP)/(TP+FN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+```
+
+### Tuned decision tree with feature selection 
+
+```{r}
+control <- rpart.control(minsplit = 7,
+    minbucket = round(5 / 3),
+    maxdepth = 4,
+    cp = 0)
+tune_fit <- rpart(stroke~., data = trainrose1 , method = 'class', control = control)
+rpart.plot(tune_fit, extra = 106)
+predict_unseen1 <-predict(tune_fit, test1_fe, type = 'class')
+confusion <- table(test1_fe$stroke, predict_unseen1)
+confusion
+# Eval Metric
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(TP)/(TP+FN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+```
+### Random Forest 
+
+```{r}
+classifier_RF = randomForest(x = trainrose[-11],
+                             y = trainrose$stroke,
+                             ntree = 500)
+  
+classifier_RF
+```
+
+```{r}
+# Predicting the Test set results
+y_pred = predict(classifier_RF, newdata = test1[-11])
+# Confusion Matrix
+confusion = table(test1$stroke, y_pred)
+confusion
+# Eval Metric
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(TP)/(TP+FN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+```
+
+### Random Forest with feature selection 
+
+```{r}
+classifier_RF = randomForest(x = trainrose1[-7],
+                             y = trainrose1$stroke,
+                             ntree = 500)
+  
+classifier_RF
+```
+
+```{r}
+# Predicting the Test set results
+y_pred = predict(classifier_RF, newdata = test1_fe[-7])
+# Confusion Matrix
+confusion = table(test1_fe$stroke, y_pred)
+confusion
+# Eval Metric
+TN =confusion[1,1]
+TP =confusion[2,2]
+FP =confusion[1,2]
+FN =confusion[2,1]
+precision =(TP)/(TP+FP)
+recall_score =(TP)/(TP+FN)
+f1_score=2*((precision*recall_score)/(precision+recall_score))
+accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
+print(paste('Accuracy for test', accuracy_model))
+print(paste('precision for test', precision))
+print(paste('f1_score for test', f1_score))
+print(paste('recall_score for test', recall_score))
+```
+
+
+# Chapter 4: Conclusion
+
+The summary paper demonstrates the exploratory data analysis of different variables such as stroke, age, smoking status, residence type, BMI, Hypertension etc. The cleaned data will be used further and model will be trained on that data. From the analysis, we found the factors(variables) that leads to stroke which are taken in to consideration.Our future aim is to create the best model that achieve maximum result for our problem statement
+
