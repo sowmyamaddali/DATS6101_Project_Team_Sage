@@ -358,7 +358,7 @@ chisq.test(stroke_df$Residence_type, stroke_df$stroke)
 ```
 
 
-# Using the under and over sampling method (both)
+##  Using the under and over sampling method (both)
 
 Undersampling is a method that works best with the majority class. To balance the dataset, it lowers the quantity of observations from the minority class.
 Oversampling is a method that works best with the minority class. To balance the dataset, it repeats the observations from the minority class. It's also referred to as upsampling.
