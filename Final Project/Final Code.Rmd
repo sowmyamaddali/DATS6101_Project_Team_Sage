@@ -14,7 +14,7 @@ output:
     toc_depth: '3'
 ---
 
-# Source of the Data
+
 
 ```{r basic_libraries, include=FALSE}
 library(ggplot2)
@@ -31,9 +31,12 @@ library("pROC")
 library(caret)
 library('OptimalCutpoints')
 ```
+# Source of the Data
 
 ```{r load_csv, include=FALSE}
+
 stroke_df = read.csv("healthcare-dataset-stroke-data.csv")
+
 ```
 
 ```{r desc, include=TRUE}
@@ -65,6 +68,7 @@ str(stroke_df)
 
 
 ```{r data_cleaning, include=FALSE}
+
 stroke_df = subset(stroke_df, select = -c(id))
 
 # converting the numeric variables to factor variables
@@ -83,7 +87,9 @@ summary(stroke_df)
 
 ```
 
+
 ```{r find_na_fix, include=FALSE}
+
 # To find the NA's in the dataset
 paste("The NA's in the dataset is:",sum(is.na(stroke_df)))
 
@@ -166,15 +172,12 @@ ggplot(stroke_df, aes(x=stroke,fill=stroke))+geom_bar()+ggtitle("Distribution of
 ```
 
 
-## Can the type of job and smoking habbit of an individual cause stroke?
-
 
 ```{r job_smoking, include=TRUE}
 
 ggplot(stroke_1,aes(x=work_type, fill= smoking_status))+geom_bar(position = "dodge")+ggtitle("Distribution of people who had a stroke based on their smoking habits")+ theme_bw() + theme()+ xlab("Work Type") + ylab("Count of people ")
 ```
 
-The above graph only includes those who have had a stroke, and we can see from the graph that most people in the private sector and self-employed have had a stroke, and it's worth noting that the two major causes of stroke were those who had never smoked and those who had formerly smoked.
 
 
 ```{r gender_job_smoking, include=TRUE}
@@ -183,45 +186,18 @@ ggplot(stroke_1_female,aes(x=work_type, fill= smoking_status))+geom_bar(position
 ggplot(stroke_1_male,aes(x=work_type, fill= smoking_status))+geom_bar(position = "dodge")+ggtitle("Distribution of males who had a stroke based on their smoking habits")+ theme_bw() + theme()+ xlab("Work Type") + ylab("Count of people ")
 ```
 
-We wanted to see if gender combined with smoking status had anything to do with stroke after observing that smoking status had something to do with stroke. We first separated the data into females who had had a stroke and then males who had had a stroke. As seen in the graph above, the key causes that caused a stroke in females were never smoked and formerly smoked, whereas in males, the reason for stroke was formerly smoked and currently smoking in the private sector, and formerly smoked and never smoked in the self-employed sector.
-
-To see if these variables are dependent of stroke we did a chi square test for smoking_status and work_type .
-
-```{r chi_test, include=TRUE}
-ctest1 = chisq.test(dat$smoking_status, dat$stroke)
-ctest2 = chisq.test(dat$work_type, dat$stroke)
-ctest1
-ctest2
-```
-
-As we can see from the results, the p values for both tests are less than 0.05, thus we fail to accept the null hypothesis and infer that smoking status and work type are related to stroke.
-
-
-## Does aging really cause stroke?
-
 
 ```{r age_stroke_1, include=TRUE}
 ggplot(stroke_1, aes(x = age, fill=stroke))+ geom_density(alpha = 0.3)+ ggtitle("Density plot for age of people who had stroke")+ theme_bw() + theme()
 ```
 
-In general, we know that as one gets older, the likelihood of contracting an illness increases. We wanted to see if this statement held true with our dataset. The above graph clearly shows that as one's age grows, the likelihood of having a stroke increases.
 
-We chose the ANOVA test because we wanted to examine if age played a role in a person suffering from stroke.
-```{r anova_test, include=TRUE}
-one.way <- aov(age ~ stroke, data = stroke_df)
-summary(one.way)
-```
-The ANOVA test result indicates that the p value is less than 0.05 and it is very significant, implying that as age increases, the likelihood of having a stroke increases regardless of gender.
-
-## Does aging with any other features increase the chances of getting a stroke?
-
-
-As we saw in our previous analysis, the likelihood of someone having a stroke increases with age. We also wondered if other factors, such as BMI and average glucose level, affect a person's chances of having a stroke as they age.
 ```{r age_bmi, include=TRUE}
+
 ggplot(stroke_1, aes(x=bmi, y=age, color=stroke))+geom_point(size=3)+ ggtitle("Scatter plot for age vs bmi for people who had a stroke")
 ```
 
-The above graph is plotted for Age vs BMI, as we can observe that above the age of 60 the datapoints are concentrated towards a particular region. All of these point fall between the BMI ranging from 25-35 which is categorized as overweight and obese.
+
 
 ```{r age_bmi.cat, include=TRUE}
 
@@ -240,33 +216,12 @@ The categories are encoded as:
 - Obesity - BMI >= 30.0 and BMI < 40
 - "Extreme" or Severe Obesity - BMI >= 40 
 
-
-```{r age_bmi.cat_chi_test, include=TRUE}
-
-ctest1 = chisq.test(dat$bmi.cat, dat$stroke)
-ctest1
-```
-As we can see from the chi-squared test, the p-value is less than 0.05, So we fail to accept the null hypothesis and can conclude that BMI is related to stroke.
-
-## Does Average glucose level with age affect stroke?
-
-
 ```{r age_avg_glucose, include=TRUE}
 stroke_1_dat = subset(dat, stroke==1 )
 ggplot(stroke_1_dat, aes(fill=avg_gluc.cat, y = age, x = avg_gluc.cat))+ geom_boxplot()+ ggtitle("Boxplot for Age vs Average Gluclose level(Categorical) for people with stroke")
 ```
 
-We can see how sugar levels affect the chances of someone having a stroke from this graph, which is plotted for Age vs Average Glucose Level. According to this graph, if your sugar level is below 60 (i.e. very low sugar), your chances of having a stroke are at an early stage in life, which is around 53 years, if your sugar level increases and falls in the range of 60-90, your chances of having a stroke are higher as you reach 58 years, and if you have a sugar level within the range 90-120 (i.e. normal blood sugar range), your chances of having a stroke are when you reach 60 years. When your blood sugar is in the range of 120 - 180 (high blood sugar), you can say that your chances of having a stroke are at 62 years old, and the same goes for ranges 180 - 273. (very high blood sugar level).
 
-Since we can see that average glucose level in the body along with age is somehow affecting the chances of a person having a stroke. From our previous analysis we can say that age definitely has an affect on stroke, now we are going to look if the average glucose level has any effect on stroke using chi-squared test.
-
-```{r avg_glucose_level_chi_tests, include=TRUE}
-ctest1 = chisq.test(dat$avg_gluc.cat, dat$stroke)
-ctest1
-```
-We can see from this test that the p-value is less than 0.05, so we cannot accept the null hypothesis and can conclude that average glucose level is dependent on stroke.
-
-## Can Hypertension be a reason for an individual to suffer from a stroke?
 
 
 ```{r age_hypertension, include=TRUE}
@@ -275,20 +230,6 @@ ggplot(data = stroke_df, aes(x=as.character(hypertension), y=age, fill=hypertens
     labs(title="Age distribution by hypertension", x="hypertension", y="age")
 ```
 
-A major risk factor for stroke is high blood pressure. HBP makes your heart work harder and gradually damages your organs and arteries. You are more prone to get a stroke due to hypertension as you age. So as the age increases the chances of getting hypertension for an individual is higher which leads to stroke.
-Ref:['link.'](https://www.stroke.org/-/media/Stroke-Files/Lets-Talk-About-Stroke/Risk-Factors/Stroke-and-High-Blood-Pressure-ucm_493407.pdf).
-
-
-```{r}
-
-ctest3 = chisq.test(stroke_df$hypertension, stroke_df$stroke)
-ctest3
-
-
-```
-As we can observe that the p-value is less than 0.05, we fail to accept the null hypothesis and hence we can conclude that hypertension is dependent of stroke.
-
-### Can heart disease be a reason for an individual to suffer from a stroke?
 
 
 ```{r age_heart_disease, include=TRUE}
@@ -297,10 +238,6 @@ ggplot(data = stroke_df, aes(x=as.character(heart_disease ), y=age, fill=heart_d
     labs(title="Age distribution by heart_disease ", x="heart_disease ", y="age")
 ```
 
-Heart disorders can increase your risk for stroke. 
-So from the plot we can see that as age increases the chances of getting a heart disease for an individual also increases which leads to stroke. 
-
-Ref: ["link."](https://www.cdc.gov/stroke/risk_factors.htm#:~:text=Heart%20disease,rich%20blood%20to%20the%20brain.).
 
 ```{r}
 
@@ -308,10 +245,6 @@ ctest4 = chisq.test(stroke_df$heart_disease, stroke_df$stroke)
 ctest4
 
 ```
-As we can observe that the p-value is less than 0.05, we fail to accept the null hypothesis and hence we can conclude that heart disease is dependent of stroke.
-
-## Does residence type cause stroke?
-
 
 ```{r}
 
@@ -319,17 +252,13 @@ ggplot(stroke_1_dat, aes(x=Residence_type,fill=Residence_type))+geom_bar(positio
 
 ```
 
-We can see that number of people who are affected by stroke in Urban is higher when compared to number of people affected by stroke in Rural. The above graph represents only stroke affected people in Rural and Urban Residence. For further analysis, to check what other factors in residence causes that are related to stroke we chose smoking habits and work environment of the people.
 ```{r}
 
 ggplot(stroke_1_dat,aes(x=Residence_type,fill=work_type))+geom_bar(position="dodge")+ggtitle("Work Type of Rural and Urban - People who are affected by stroke ")+theme()+theme_bw()+ylab("No of people")
 
 ```
 
-A review of numerous research found that working in a high-stress environment may increase the risk of stroke. The meta-analysis is published in the October 14, 2015, online issue of Neurology, the medical journal of the American Academy of Neurology. 
-From the above graph we can see that the number of people who works in private has higher risk of getting stroke in both rural and urban. We can also see that people who are working in self-employed sectors also
-get stroke.
-Ref:["link."](https://www.aan.com/PressRoom/Home/PressRelease/1412#:~:text=Having%20a%20high%20stress%20job,the%20American%20Academy%20of%20Neurology.)
+
 
 ```{r}
 
@@ -337,13 +266,7 @@ ggplot(stroke_1_dat,aes(x=Residence_type,fill=smoking_status))+geom_bar(position
 
 ```
 
-Stroke risk is boosted by smoking by 20–30%. More than 8,000 stroke fatalities are brought on by smoke exposure each year. Smoking alters the working of heart, blood, and vascular systems, which raises your chance of suffering a heart attack.
-From the above graph we can see that the smoking habits of people who suffered stroke in both rural and urban. Ref:["link."](https://www.cdc.gov/tobacco/campaign/tips/diseases/heart-disease-stroke.html#:~:text=Secondhand%20smoke%20increases%20the%20risk,of%20having%20a%20heart%20attack.). Even though smoking also has an effect on causing stroke, surprisingly people who won't smoke have suffered stroke (According to this data). 
 
-```{r}
-ch<-table(stroke_df$Residence_type, stroke_df$stroke)  
-chisq.test(stroke_df$Residence_type, stroke_df$stroke)
-```
 
 # Modeling 
 
@@ -366,6 +289,23 @@ paste("Seeing if the class imabalance is fixed")
 r
 str(test)
 ```
+
+# Feature Selection 
+
+```{r}
+clf = randomForest(x = train[-11],
+                             y = train$stroke,
+                             ntree = 500)
+
+# Predicting the Test set results
+y_pred = predict(clf, newdata = test[-11])
+
+# Confusion Matrix
+confusion = table(test$stroke, y_pred)
+varImpPlot(clf)
+
+```
+
 ```{r}
 
 ggplot(train, aes(x=stroke,fill=stroke))+geom_bar()+ggtitle("Distribution of Target variable (Stroke) after balancing using ")+ theme_bw() + theme()+ xlab("Stroke") + ylab("Count of people")
@@ -378,33 +318,28 @@ str(test)
 
 
 
-### LOGIT
+### Logistic Regression 
 
 
 
 ```{r}
 
 set.seed(123)
-logitrose  <- glm(stroke ~., family=binomial (link="logit"), data=train)
-predlogitrose <- predict(logitrose, newdata=test[-11], type="response")
-confusion <- table(test$stroke, predlogitrose >= 0.5)
-confusion
+
+#logistic regression
+
+logit  <- glm(stroke ~., family=binomial (link="logit"), data=train)
+predlogit <- predict(logit, newdata=test[-11], type="response")
+
+# prediction 
+pred = ifelse(predlogit>=0.5,1,0)
+pred = as.factor(pred)
 # Eval Metric
-TN =confusion[1,1]
-TP =confusion[2,2]
-FP =confusion[1,2]
-FN =confusion[2,1]
-precision =(TP)/(TP+FP)
-recall_score =(TP)/(TP+FN)
-f1_score=2*((precision*recall_score)/(precision+recall_score))
-accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
-print(paste('Accuracy for test', accuracy_model))
-print(paste('precision for test', precision))
-print(paste('f1_score for test', f1_score))
-print(paste('recall_score for test', recall_score))
+confusion1= confusionMatrix(pred,test$stroke,mode= "everything")
+confusion1
 
-test_prob = predict(logitrose, test[-11], type = "response")
-
+# AUC - ROC curve 
+test_prob = predict(logit, test[-11], type = "response")
 test_roc = roc(test$stroke ~ test_prob, plot = TRUE, print.auc = TRUE)
 test_roc
 ```
@@ -414,34 +349,32 @@ test_roc
 
 
 ```{r}
-library(ROSE)
+
 set.seed(1234)
+# selecting the features based on the feature selection done above
 train_fe = subset(train, select = c(age,avg_glucose_level,work_type,hypertension,smoking_status,bmi,stroke))
 test_fe = subset(test, select = c(age,avg_glucose_level,work_type,hypertension,smoking_status,bmi,stroke))
 str(train_fe[-7])
 ```
 ```{r}
-logitrose  <- glm(stroke ~., family=binomial (link="logit"), data=train_fe)
-predlogitrose <- predict(logitrose, newdata=test_fe[-7], type="response")
-confusion <- table(test_fe$stroke, predlogitrose >= 0.5)
-confusion
+# logistic regression model
 
-# Eval Metric
-TN =confusion[1,1]
-TP =confusion[2,2]
-FP =confusion[1,2]
-FN =confusion[2,1]
-precision =(TP)/(TP+FP)
-recall_score =(TP)/(TP+FN)
-f1_score=2*((precision*recall_score)/(precision+recall_score))
-accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
-print(paste('Accuracy for test', accuracy_model))
-print(paste('precision for test', precision))
-print(paste('f1_score for test', f1_score))
-print(paste('recall_score for test', recall_score))
+logit  <- glm(stroke ~., family=binomial (link="logit"), data=train_fe)
 
-test_prob = predict(logitrose, test_fe[-7], type = "response")
+# prediction 
 
+predlogit <- predict(logit, newdata=test_fe[-7], type="response")
+pred = ifelse(predlogit>=0.5,1,0)
+pred = as.factor(pred)
+
+# Evaluation Metric
+
+confusion1= confusionMatrix(pred,test_fe$stroke,mode= "everything")
+confusion1
+
+# AUC-ROC curve
+
+test_prob = predict(logit, test_fe[-7], type = "response")
 test_roc = roc(test_fe$stroke ~ test_prob, plot = TRUE, print.auc = TRUE)
 test_roc
 ```
@@ -450,123 +383,125 @@ test_roc
 ### Decision Tree
 
 ```{r}
+# decision tree fitting 
+
 fit <- rpart(stroke~ ., data = train , method = 'class')
 rpart.plot(fit, extra = 106)
 ```
 ```{r}
+
+# prediction 
+
 predict_unseen <-predict(fit, test[-11], type = 'class')
-confusion <- table(test$stroke, predict_unseen)
-confusion
-# Eval Metric
-TN =confusion[1,1]
-TP =confusion[2,2]
-FP =confusion[1,2]
-FN =confusion[2,1]
-precision =(TP)/(TP+FP)
-recall_score =(TP)/(TP+FN)
-f1_score=2*((precision*recall_score)/(precision+recall_score))
-accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
-print(paste('Accuracy for test', accuracy_model))
-print(paste('precision for test', precision))
-print(paste('f1_score for test', f1_score))
-print(paste('recall_score for test', recall_score))
+
+# Evaluation Metric
+
+confusion1= confusionMatrix(predict_unseen,test$stroke,mode= "everything")
+confusion1
+
+# AUC-ROC curve
+
+prob=predict(fit,test[-11],type="prob")
+ROC_rf <- roc(test$stroke, prob[,2])
+plot(ROC_rf)
+paste("Area under curve of Decision Tree: ", auc(ROC_rf))
 
 ```
 
 #### Decision Tree with feature selection
 
 ```{r}
+# decision tree fit
+
 fit <- rpart(stroke~ ., data = train_fe , method = 'class')
 rpart.plot(fit, extra = 106)
 ```
 
 
 ```{r}
-predict_unseen <-predict(fit, test_fe[-7], type = 'class')
-confusion <- table(test_fe$stroke, predict_unseen)
-confusion
-# Eval Metric
-TN =confusion[1,1]
-TP =confusion[2,2]
-FP =confusion[1,2]
-FN =confusion[2,1]
-precision =(TP)/(TP+FP)
-recall_score =(TP)/(TP+FN)
-f1_score=2*((precision*recall_score)/(precision+recall_score))
-accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
-print(paste('Accuracy for test', accuracy_model))
-print(paste('precision for test', precision))
-print(paste('f1_score for test', f1_score))
-print(paste('recall_score for test', recall_score))
+# Prediction
 
+predict_unseen <-predict(fit, test_fe[-7], type = 'class')
+
+# Evaluation Metric
+
+confusion1= confusionMatrix(predict_unseen,test_fe$stroke,mode= "everything")
+confusion1
+
+# AUC-ROC curve
+
+prob=predict(fit,test_fe[-7],type="prob")
+ROC_rf <- roc(test_fe$stroke, prob[,2])
+plot(ROC_rf)
+paste("Area under curve of Decision Tree: ", auc(ROC_rf))
 ```
 
 ### tuned decision tree
 
 ```{r}
+# parameter setting for decision tree
 control <- rpart.control(minsplit = 5,
     minbucket = round(5 / 3),
     maxdepth = 6,
     cp = 0)
+
+# fitting the model
 tune_fit <- rpart(stroke~., data = train , method = 'class', control = control)
 rpart.plot(tune_fit, extra = 106)
 ```
 
 ```{r}
-predict_unseen1 <-predict(tune_fit, test[-11], type = 'class')
-confusion <- table(test$stroke, predict_unseen1)
-confusion
-# Eval Metric
-TN =confusion[1,1]
-TP =confusion[2,2]
-FP =confusion[1,2]
-FN =confusion[2,1]
-precision =(TP)/(TP+FP)
-recall_score =(TP)/(TP+FN)
-f1_score=2*((precision*recall_score)/(precision+recall_score))
-accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
-print(paste('Accuracy for test', accuracy_model))
-print(paste('precision for test', precision))
-print(paste('f1_score for test', f1_score))
-print(paste('recall_score for test', recall_score))
+# Precition
 
+predict_unseen1 <-predict(tune_fit, test[-11], type = 'class')
+
+# Evaluation Metric
+
+confusion1= confusionMatrix(predict_unseen1,test$stroke,mode= "everything")
+confusion1
+
+# AUC-ROC curve
+
+prob=predict(tune_fit,test[-11],type="prob")
+ROC_rf <- roc(test$stroke, prob[,2])
+plot(ROC_rf)
+paste("Area under curve of Decision Tree: ", auc(ROC_rf))
 ```
 
 
 #### tuned decision tree with feature selection 
 
 ```{r}
+# seeting the parameters for the tree
 control <- rpart.control(minsplit = 5,
     minbucket = round(5 / 3),
     maxdepth = 6,
     cp = 0)
+
+# fitting the model
 tune_fit <- rpart(stroke~., data = train_fe , method = 'class', control = control)
 rpart.plot(tune_fit, extra = 106)
 ```
 
 ```{r}
 predict_unseen1 <-predict(tune_fit, test_fe[-7], type = 'class')
-confusion <- table(test_fe$stroke, predict_unseen1)
-confusion
-# Eval Metric
-TN =confusion[1,1]
-TP =confusion[2,2]
-FP =confusion[1,2]
-FN =confusion[2,1]
-precision =(TP)/(TP+FP)
-recall_score =(TP)/(TP+FN)
-f1_score=2*((precision*recall_score)/(precision+recall_score))
-accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
-print(paste('Accuracy for test', accuracy_model))
-print(paste('precision for test', precision))
-print(paste('f1_score for test', f1_score))
-print(paste('recall_score for test', recall_score))
 
+# Evaluation Metric
+confusion1= confusionMatrix(predict_unseen1,test_fe$stroke,mode= "everything")
+confusion1
+
+# AUC-ROC curve
+
+prob=predict(tune_fit,test_fe[-7],type="prob")
+ROC_rf <- roc(test_fe$stroke, prob[,2])
+plot(ROC_rf)
+paste("Area under curve of Decision Tree: ", auc(ROC_rf))
 ```
 
 ### Random Forest 
 
 ```{r}
+# Random forest classifier
 classifier_RF = randomForest(x = train[-11],
                              y = train$stroke,
                              ntree = 500)
@@ -575,65 +510,27 @@ classifier_RF
 
 ```
 ```{r}
+
 # Predicting the Test set results
 y_pred = predict(classifier_RF, newdata = test[-11])
 
-# Confusion Matrix
-confusion = table(test$stroke, y_pred)
-confusion
-# Eval Metric
-TN =confusion[1,1]
-TP =confusion[2,2]
-FP =confusion[1,2]
-FN =confusion[2,1]
-precision =(TP)/(TP+FP)
-recall_score =(TP)/(TP+FN)
-f1_score=2*((precision*recall_score)/(precision+recall_score))
-accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
-print(paste('Accuracy for test', accuracy_model))
-print(paste('precision for test', precision))
-print(paste('f1_score for test', f1_score))
-print(paste('recall_score for test', recall_score))
-varImpPlot(classifier_RF)
-```
-#### Random forest with feature selection with 6 var
-```{r}
-train_fe1 = subset(train, select = c(age,avg_glucose_level,work_type,hypertension,smoking_status,bmi,stroke))
-test_fe1 = subset(test, select = c(age,avg_glucose_level,work_type,hypertension,smoking_status,bmi,stroke))
-dim(train_fe1)
-dim(test_fe1)
-classifier_RF = randomForest(x = train_fe1[-7],
-                             y = train_fe1$stroke,
-                             ntree = 500)
+# Evaluation Metric
 
-classifier_RF
+confusion1= confusionMatrix(y_pred,test$stroke,mode= "everything")
+confusion1
 
-```
-```{r}
-# Predicting the Test set results
-y_pred = predict(classifier_RF, newdata = test_fe1[-7])
+# AUC-ROC curve
 
-# Confusion Matrix
-confusion = table(test_fe1$stroke, y_pred)
-confusion
-# Eval Metric
-TN =confusion[1,1]
-TP =confusion[2,2]
-FP =confusion[1,2]
-FN =confusion[2,1]
-precision =(TP)/(TP+FP)
-recall_score =(TP)/(TP+FN)
-f1_score=2*((precision*recall_score)/(precision+recall_score))
-accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
-print(paste('Accuracy for test', accuracy_model))
-print(paste('precision for test', precision))
-print(paste('f1_score for test', f1_score))
-print(paste('recall_score for test', recall_score))
-varImp(classifier_RF)
+prob=predict(classifier_RF,test[-11],type="prob")
+ROC_rf <- roc(test$stroke, prob[,2])
+plot(ROC_rf)
+paste("Area under curve of random forest: ", auc(ROC_rf))
 ```
+
 
 #### Random Forest with feature selected variables 
 ```{r}
+# Random Forest Classifier 
 classifier_RF1 = randomForest(x = train_fe[-7],
                              y = train_fe$stroke,
                              ntree = 500)
@@ -642,30 +539,27 @@ classifier_RF1
 
 ```
 ```{r}
+
 # Predicting the Test set results
 y_pred = predict(classifier_RF1, newdata = test_fe[-7])
 
-# Confusion Matrix
-confusion = table(test_fe$stroke, y_pred)
-confusion
-# Eval Metric
-TN =confusion[1,1]
-TP =confusion[2,2]
-FP =confusion[1,2]
-FN =confusion[2,1]
-precision =(TP)/(TP+FP)
-recall_score =(TP)/(TP+FN)
-f1_score=2*((precision*recall_score)/(precision+recall_score))
-accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
-print(paste('Accuracy for test', accuracy_model))
-print(paste('precision for test', precision))
-print(paste('f1_score for test', f1_score))
-print(paste('recall_score for test', recall_score))
+# Evaluation Metric
+
+confusion1= confusionMatrix(y_pred,test_fe$stroke,mode= "everything")
+confusion1
+
+# AUC-ROC curve
+
+prob=predict(classifier_RF1,test_fe[-7],type="prob")
+ROC_rf <- roc(test_fe$stroke, prob[,2])
+plot(ROC_rf)
+paste("Area under curve of random forest: ", auc(ROC_rf))
 ```
 
 ## Using ROSE techinque 
 
 ```{r}
+
 set.seed(1234)
 trainIndex = sample(1:nrow(stroke_df), size=round(0.75*nrow(stroke_df)), replace=FALSE)
 train1 <- stroke_df[trainIndex,]
@@ -677,14 +571,16 @@ dim(test1)
 
  feature selection 1 data 
 ```{r}
-library(ROSE)
+
 set.seed(1234)
 train_fe = subset(train1, select = c(age,avg_glucose_level,work_type,hypertension,smoking_status,bmi,stroke))
 test1_fe = subset(test1, select = c(age,avg_glucose_level,work_type,hypertension,smoking_status,bmi,stroke))
+
 str(train_fe)
 dim(test1_fe)
 ```
- with feature selection rose split
+ 
+with feature selection rose split
 ```{r}
 set.seed(1234)
 
@@ -697,6 +593,7 @@ table(trainrose1$stroke)
 ```
 
 Without feature selection data
+
 ```{r}
 set.seed(1234)
 
@@ -704,6 +601,7 @@ trainrose<-ROSE(stroke~.,data=train1)$data
 
 ggplot(trainrose, aes(x=stroke,fill=stroke))+geom_bar()+ggtitle("Distribution of Target varibale (Stroke) after balancing(all variables)")+ theme_bw() +  theme()+ xlab("Stroke") + ylab("Count of people")
 ```
+
 ```{r}
 trainrose$age = abs(trainrose$age)
 trainrose$avg_glucose_level = abs(trainrose$avg_glucose_level)
@@ -716,6 +614,7 @@ trainrose1$age = abs(trainrose1$age)
 trainrose1$avg_glucose_level = abs(trainrose1$avg_glucose_level)
 summary(trainrose1)
 ```
+
 ```{r}
 table(train_fe$stroke)
 
@@ -724,60 +623,51 @@ table(test1_fe$stroke)
 ```
 
 
-### LOGIT Model 
+### Logistic Model 
 
 
 ```{r}
+
 set.seed(1234)
+# logistic model
 logitrose  <- glm(stroke ~., family=binomial (link="logit"), data=trainrose)
+
+
+# Prediction
 predlogitrose <- predict(logitrose, newdata=test1[-11], type="response")
-confusion <- table(test1$stroke, predlogitrose >= 0.5)
-confusion
-# Eval Metric
-TN =confusion[1,1]
-TP =confusion[2,2]
-FP =confusion[1,2]
-FN =confusion[2,1]
-precision =(TP)/(TP+FP)
-recall_score =(TP)/(TP+FN)
-f1_score=2*((precision*recall_score)/(precision+recall_score))
-accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
-print(paste('Accuracy for test', accuracy_model))
-print(paste('precision for test', precision))
-print(paste('f1_score for test', f1_score))
-print(paste('recall_score for test', recall_score))
+pred = ifelse(predlogitrose>=0.5,1,0)
+pred = as.factor(pred)
 
+# Evaluation Metric
+confusion1= confusionMatrix(pred,test1$stroke,mode= "everything")
+confusion1
+
+# AUC-ROC curve
 test_prob = predict(logitrose, test1[-11], type = "response")
-
 test_roc = roc(test1$stroke ~ test_prob, plot = TRUE, print.auc = TRUE)
 test_roc
 ```
 
-#### LOGIT Model with feature selection 
+#### Logistic Model with feature selection 
 
 
 ```{r}
 set.seed(1234)
+# Logistic Model
 logitrose  <- glm(stroke ~., family=binomial (link="logit"), data=trainrose1)
+
+# Prediction
 predlogitrose <- predict(logitrose, newdata=test1_fe[-7], type="response")
-confusion <- table(test1_fe$stroke, predlogitrose >= 0.5)
-confusion
-# Eval Metric
-TN =confusion[1,1]
-TP =confusion[2,2]
-FP =confusion[1,2]
-FN =confusion[2,1]
-precision =(TP)/(TP+FP)
-recall_score =(TP)/(TP+FN)
-f1_score=2*((precision*recall_score)/(precision+recall_score))
-accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
-print(paste('Accuracy for test', accuracy_model))
-print(paste('precision for test', precision))
-print(paste('f1_score for test', f1_score))
-print(paste('recall_score for test', recall_score))
+pred = ifelse(predlogitrose>=0.5,1,0)
+pred = as.factor(pred)
+
+# Evaluation Metric
+confusion1= confusionMatrix(pred,test1_fe$stroke,mode= "everything")
+confusion1
+
+# AUC-ROC curve
 
 test_prob = predict(logitrose, test1_fe[-11], type = "response")
-
 test_roc = roc(test1_fe$stroke ~ test_prob, plot = TRUE, print.auc = TRUE)
 
 ```
@@ -792,25 +682,19 @@ rpart.plot(fit, extra = 106)
 
 
 ```{r}
-predict_unseen <-predict(fit, test1[-11], type = 'class')
-confusion <- table(test1$stroke, predict_unseen)
-confusion
-# Eval Metric
-TN =confusion[1,1]
-TP =confusion[2,2]
-FP =confusion[1,2]
-FN =confusion[2,1]
-precision =(TP)/(TP+FP)
-recall_score =(TP)/(TP+FN)
-f1_score=2*((precision*recall_score)/(precision+recall_score))
-accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
-FPR = FP/(FP+TN)
-TPR = (TP)/(TP+FN)
-print(paste('Accuracy for test', accuracy_model))
-print(paste('precision for test', precision))
-print(paste('f1_score for test', f1_score))
-print(paste('recall_score for test', recall_score))
 
+predict_unseen <-predict(fit, test1[-11], type = 'class')
+
+# Evaluation Metric
+confusion1= confusionMatrix(predict_unseen,test1$stroke,mode= "everything")
+confusion1
+
+# AUC-ROC curve
+
+prob=predict(fit,test1[-11],type="prob")
+ROC_rf <- roc(test1$stroke, prob[,2])
+plot(ROC_rf)
+paste("Area under curve of random forest: ", auc(ROC_rf))
 
 ```
 #### DECISION TREE with feature selection
@@ -823,75 +707,77 @@ rpart.plot(fit, extra = 106)
 
 ```{r}
 predict_unseen <-predict(fit, test1_fe[-7], type = 'class')
-confusion <- table(test1_fe$stroke, predict_unseen)
-confusion
-# Eval Metric
-TN =confusion[1,1]
-TP =confusion[2,2]
-FP =confusion[1,2]
-FN =confusion[2,1]
-precision =(TP)/(TP+FP)
-recall_score =(TP)/(TP+FN)
-f1_score=2*((precision*recall_score)/(precision+recall_score))
-accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
-print(paste('Accuracy for test', accuracy_model))
-print(paste('precision for test', precision))
-print(paste('f1_score for test', f1_score))
-print(paste('recall_score for test', recall_score))
+
+# Evaluation Metric
+
+confusion1= confusionMatrix(predict_unseen,test1_fe$stroke,mode= "everything")
+confusion1
+
+
+# AUC-ROC curve
+
+prob=predict(fit,test1_fe[-7],type="prob")
+ROC_rf <- roc(test1_fe$stroke, prob[,2])
+plot(ROC_rf)
+paste("Area under curve of random forest: ", auc(ROC_rf))
+
 ```
 
 ### Tuned decision tree
 
 ```{r}
+
 control <- rpart.control(minsplit = 7,
     minbucket = round(5 / 3),
     maxdepth = 4,
     cp = 0)
+
 tune_fit <- rpart(stroke~., data = trainrose , method = 'class', control = control)
 rpart.plot(tune_fit, extra = 106)
-predict_unseen1 <-predict(tune_fit, test1, type = 'class')
-confusion <- table(test1$stroke, predict_unseen1)
-confusion
+
+# Prediction
+
+predict_unseen1 <-predict(tune_fit, test1[-11], type = 'class')
+
 # Eval Metric
-TN =confusion[1,1]
-TP =confusion[2,2]
-FP =confusion[1,2]
-FN =confusion[2,1]
-precision =(TP)/(TP+FP)
-recall_score =(TP)/(TP+FN)
-f1_score=2*((precision*recall_score)/(precision+recall_score))
-accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
-print(paste('Accuracy for test', accuracy_model))
-print(paste('precision for test', precision))
-print(paste('f1_score for test', f1_score))
-print(paste('recall_score for test', recall_score))
+confusion1= confusionMatrix(predict_unseen1,test1$stroke,mode= "everything")
+confusion1
+
+# AUC-ROC curve
+
+prob=predict(tune_fit,test1[-11],type="prob")
+ROC_rf <- roc(test1$stroke, prob[,2])
+plot(ROC_rf)
+paste("Area under curve of random forest: ", auc(ROC_rf))
+
 ```
 
 #### Tuned decision tree with feature selection 
 
 ```{r}
+
 control <- rpart.control(minsplit = 7,
     minbucket = round(5 / 3),
     maxdepth = 4,
     cp = 0)
+
 tune_fit <- rpart(stroke~., data = trainrose1 , method = 'class', control = control)
 rpart.plot(tune_fit, extra = 106)
-predict_unseen1 <-predict(tune_fit, test1_fe, type = 'class')
-confusion <- table(test1_fe$stroke, predict_unseen1)
-confusion
-# Eval Metric
-TN =confusion[1,1]
-TP =confusion[2,2]
-FP =confusion[1,2]
-FN =confusion[2,1]
-precision =(TP)/(TP+FP)
-recall_score =(TP)/(TP+FN)
-f1_score=2*((precision*recall_score)/(precision+recall_score))
-accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
-print(paste('Accuracy for test', accuracy_model))
-print(paste('precision for test', precision))
-print(paste('f1_score for test', f1_score))
-print(paste('recall_score for test', recall_score))
+
+# prediction
+predict_unseen1 <-predict(tune_fit, test1_fe[-7], type = 'class')
+
+# Evaluation Metric
+confusion1= confusionMatrix(predict_unseen,test1_fe$stroke,mode= "everything")
+confusion1
+
+# AUC-ROC curve
+
+prob=predict(tune_fit,test1_fe[-7],type="prob")
+ROC_rf <- roc(test1_fe$stroke, prob[,2])
+plot(ROC_rf)
+paste("Area under curve of random forest: ", auc(ROC_rf))
+
 ```
 ### Random Forest 
 
@@ -907,22 +793,17 @@ classifier_RF
 # Predicting the Test set results
 y_pred = predict(classifier_RF, newdata = test1[-11])
 
-# Confusion Matrix
-confusion = table(test1$stroke, y_pred)
-confusion
-# Eval Metric
-TN =confusion[1,1]
-TP =confusion[2,2]
-FP =confusion[1,2]
-FN =confusion[2,1]
-precision =(TP)/(TP+FP)
-recall_score =(TP)/(TP+FN)
-f1_score=2*((precision*recall_score)/(precision+recall_score))
-accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
-print(paste('Accuracy for test', accuracy_model))
-print(paste('precision for test', precision))
-print(paste('f1_score for test', f1_score))
-print(paste('recall_score for test', recall_score))
+# Evaluation Metric
+confusion1= confusionMatrix(y_pred,test1$stroke,mode= "everything")
+confusion1
+
+# AUC-ROC curve
+
+prob=predict(classifier_RF,test1[-11],type="prob")
+ROC_rf <- roc(test1$stroke, prob[,2])
+plot(ROC_rf)
+paste("Area under curve of random forest: ", auc(ROC_rf))
+
 ```
 
 #### Random Forest with feature selection 
@@ -939,22 +820,18 @@ classifier_RF
 # Predicting the Test set results
 y_pred = predict(classifier_RF, newdata = test1_fe[-7])
 
-# Confusion Matrix
-confusion = table(test1_fe$stroke, y_pred)
-confusion
-# Eval Metric
-TN =confusion[1,1]
-TP =confusion[2,2]
-FP =confusion[1,2]
-FN =confusion[2,1]
-precision =(TP)/(TP+FP)
-recall_score =(TP)/(TP+FN)
-f1_score=2*((precision*recall_score)/(precision+recall_score))
-accuracy_model  =(TP+TN)/(TP+TN+FP+FN)
-print(paste('Accuracy for test', accuracy_model))
-print(paste('precision for test', precision))
-print(paste('f1_score for test', f1_score))
-print(paste('recall_score for test', recall_score))
+# Evaluation Metric
+
+confusion1= confusionMatrix(y_pred,test1_fe$stroke,mode= "everything")
+confusion1
+
+# AUC-ROC curve
+
+prob=predict(classifier_RF,test1_fe[-7],type="prob")
+ROC_rf <- roc(test1_fe$stroke, prob[,2])
+plot(ROC_rf)
+paste("Area under curve of random forest: ", auc(ROC_rf))
+
 ```
 
 

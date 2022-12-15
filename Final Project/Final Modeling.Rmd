@@ -126,6 +126,24 @@ paste("Seeing if the class imabalance is fixed")
 r
 str(test)
 ```
+```{r}
+table(train$stroke)
+table(test$stroke)
+```
+
+
+```{r}
+clf = randomForest(x = train[-11],
+                             y = train$stroke,
+                             ntree = 500)
+
+# Predicting the Test set results
+y_pred = predict(clf, newdata = test[-11])
+
+# Confusion Matrix
+confusion = table(test$stroke, y_pred)
+varImpPlot(clf)
+```
 # feature importance LVQ
 ```{r}
 
@@ -166,6 +184,8 @@ nrow(stroke_df[11])
 # plot the results
 #plot(results, type=c("g", "o"))
 ```
+
+
 
 ## LOGIT
 
