@@ -753,7 +753,7 @@ The next metric that we considered is the accuracy of the model, which is the nu
 The final metric that we considered to evaluate our model is the AUC-ROC score. As this gives us an idea about how well the model can distinguish between two classes.
 
 
-# Model Evaluation 
+# Model Comparison 
 
 We discovered that our model was performing poorly due to a data imbalance issue in the dataset, therefore we decided to balance the data using ROSE and a combination of under and over sampling before modeling. For both balancing techniques, we created three models: Logistic Regression, Decision Tree Classifier, and Random Forest Classifier. Later on, we intended to do feature selection on all of these models based on the Random Forest Classifier's feature importance plot.
 
