@@ -770,6 +770,13 @@ We discovered that the combination of under and oversampling was the most benefi
 
 The summary paper demonstrates how we addressed the data imbalance issue in our dataset and the modeling process. With the help of balancing techniques i.e. ROSE and combination of under and over sampling, we have found that random forest without feature selection using the combination of both under and oversampling performs the best compared to the other models. The main factors that can be used to predict the likelihood of a stroke are age, average glucose level, bmi, smoking status, work_type and hypertension based on the feature selection done with the help of Random Forest Classifier. 
 
+# Bibliography
+
+Dataset is available at : [Kaggle](https://www.kaggle.com/datasets/fedesoriano/stroke-prediction-dataset)
+
+Stroke Disease Detection and Prediction Using Robust Learning Approaches. Tahia Tazin, Md Nur Alam, 1 Nahian Nakiba Dola, Mohammad Sajibul Bari, Sami Bourouis, and Mohammad Monirujjaman Khan. Retrieved from (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8641997/)
+
+A predictive analytics approach for stroke prediction using machine learning and neural networks. Soumyabrata Devab, Hewei Wangcd Chidozie, Shamrock Nwosue, Nishtha Jain, Bharadwaj Veeravallif, Deepu John (https://www.sciencedirect.com/science/article/pii/S2772442522000090)
 
 
 
