@@ -158,6 +158,7 @@ ggplot(stroke_df, aes(x=avg_glucose_level)) +  geom_density(fill="lightgreen", c
 ggplot(stroke_df, aes(x=stroke,fill=stroke))+geom_bar()+ggtitle("Distribution of Target variable (Stroke)")+ theme_bw() + theme()+ xlab("Stroke") + ylab("Count of people")
 
 ```
+
 The Target variable stroke here is imbalanced, and doing the balancing first would have an affect on the data, as the copies of the data made during under and over sampling would affect our analyses by changing the initial findings.
 
 
@@ -199,7 +200,7 @@ As we can see from the results, the p values for both tests are less than 0.05, 
 
 **NULL HYPOTHESIS**<br>
 **H0: There is no change in the mean of age with respect to stroke**<br>
-**H1: The means of age are changing with respect to stroke **
+**H1: The mean of age is changing with respect to stroke **
 
 ```{r age_stroke_1, include=TRUE}
 ggplot(stroke_1, aes(x = age, fill=stroke))+ geom_density(alpha = 0.3)+ ggtitle("Density plot for age of people who had stroke")+ theme_bw() + theme()
@@ -212,7 +213,7 @@ We chose the ANOVA test because we wanted to examine if age played a role in a p
 one.way <- aov(age ~ stroke, data = stroke_df)
 summary(one.way)
 ```
-The ANOVA test result indicates that the p value is less than 0.05 and it is very significant, implying that as age increases, the likelihood of having a stroke increases regardless of gender.
+The ANOVA test result indicates that the p value is less than 0.05 and it is very significant. Hence we fail to accept the null hypothesis which implies that as age increases, the likelihood of having a stroke increases.
 
 ## Does aging with any other features increase the chances of getting a stroke?
 
@@ -361,11 +362,12 @@ ggplot(stroke_1_dat,aes(x=Residence_type,fill=smoking_status))+geom_bar(position
 
 ```
 
-Stroke risk is boosted by smoking by 20–30%. More than 8,000 stroke fatalities are brought on by smoke exposure each year. Smoking alters the working of heart, blood, and vascular systems, which raises your chance of suffering a heart attack.
+The risk of getting a stroke is boosted by smoking by 20–30%. More than 8,000 stroke fatalities are brought on by smoke exposure each year. Smoking alters the working of heart, blood, and vascular systems, which raises your chance of suffering a heart attack.
 From the above graph we can see that the smoking habits of people who suffered stroke in both rural and urban.
 
-Ref: [link](https://www.cdc.gov/tobacco/campaign/tips/diseases/heart-disease-stroke.html#:~:text=Secondhand%20smoke%20increases%20the%20risk,of%20having%20a%20heart%20attack.). Even though smoking also has an effect on causing stroke, surprisingly people who won't smoke have suffered stroke (According to this data). 
+Even though smoking also has an effect on causing stroke, surprisingly people who won't smoke have suffered stroke (According to this data). 
 
+Ref: [link](https://www.cdc.gov/tobacco/campaign/tips/diseases/heart-disease-stroke.html#:~:text=Secondhand%20smoke%20increases%20the%20risk,of%20having%20a%20heart%20attack.)
 ```{r}
 ch<-table(stroke_df$Residence_type, stroke_df$stroke)  
 chisq.test(stroke_df$Residence_type, stroke_df$stroke)
@@ -375,9 +377,17 @@ chisq.test(stroke_df$Residence_type, stroke_df$stroke)
 
 A few interesting facts that we found after our analyses are:
 
-- Work_type and smoking_ habit(which includes non-smokers too) of a person can lead to a stroke.
-- Age has played a major role for someone to get affected by stroke.
-- Age with factors like a persons Body Mass Index, Average glucose level, hypertension, and if he/she has any sort of heart disease   plays an important role in predicting if that person can suffer from a stroke.
+- Work type and smoking habits(which includes non-smokers too) of a person can lead to a stroke.
+- Age has played a major role for someone to get affected by a stroke.
+- As a person ages and if they fall into a higher BMI range the risk of he/she getting a stroke at an early stage(about 50 years of   age) in life is higher.
+- The average glucose level in the person can determine if they can suffer from a stroke.
+- As per this data the chances of hypertension and heart disease in a person is higher when he/she is older(above 55 years) which     can lead to a stroke.
 - Residence type along with work type and smoking habits of a person will not cause a stroke. 
 
-The summary paper demonstrates the exploratory data analysis of different variables such as stroke, age, smoking status, residence type, BMI, Hypertension etc. The cleaned data will be used further and model will be trained on that data. From the analysis, we found the factors(variables) that leads to stroke which are taken in to consideration.Our future aim is to create the best model that achieve maximum result for our problem statement.
+This summary paper shows exploratory data analysis of various variables such as stroke, age, smoking status, residence type, BMI, Hypertension, and so on. The cleaned data will be used again, and the model will be trained on it. We discovered the factors (variables) that cause stroke and took them into account based on the analysis. Our long-term goal is to develop the best model that can predict if a person can suffer from a stroke based on the current dataset we have.
+
+## Limitations
+
+There are a few limitations in our dataset because the number of datapoints is very low (approximately 5000 rows), and it would be preferable if there were more datapoints for people who have suffered from stroke so that the analyses performed on this data can be applied to a larger population. Other factors such as previous stroke history, stress level, stroke history in the family, cholesterol imbalance, and physical inactivity could have been more useful in predicting the likelihood of someone having a stroke.
+
+
