@@ -1,0 +1,879 @@
+---
+title: "Final Project Technical code and analysis"
+author: "Team Sage"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    code_folding: hide
+    number_sections: true
+    toc: yes
+    toc_depth: 5
+    toc_float: yes
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+---
+
+
+
+```{r basic_libraries, include=FALSE}
+library(ggplot2)
+library(gridExtra)
+library(corrplot)
+library(ROSE)
+library(dplyr)
+library(smotefamily)
+library(caTools)
+library(randomForest)
+library(rpart)
+library(rpart.plot)
+library("pROC")
+library(caret)
+library('OptimalCutpoints')
+```
+# Source of the Data
+
+```{r load_csv, include=FALSE}
+#Importing dataset
+stroke_df = read.csv("healthcare-dataset-stroke-data.csv")
+
+```
+
+```{r desc, include=TRUE}
+str(stroke_df)
+```
+
+- id (a unique identification number for each observation)
+- gender (3 categories "Male", "Female", or "Other")
+- age (age of the individual)
+- hypertension (blood pressure of an individual)
+- heart_disease (history of any heart disease previously noted)
+- ever_married (2 categories "No" or "Yes")
+- work_type (5 categories "children", "govt_job", "never_worked", "private", "self-employed")
+- residence_type (where does the individual reside "rural" or "urban")
+- avg_glucose_level (Average Blood Sugar level of an individual)
+- bmi (Body Mass Index of the individual)
+- smoking_status (smoking status of an individual)
+- stroke (Target variable "1" or "0") 
+
+# Data Manipulation and Cleaning 
+
+- Converting the character value columns to categorical values and numerical values based on the type of the column.
+- Checking for Null values in the dataset
+- Null value imputation with mean
+- subsetting the data into people who got stroke and the ones that didnt 
+- subsetting the data into male and females who got stroke 
+- created a separate categorical column for bmi using the bucketing system given in [Wikipedia](https://en.wikipedia.org/wiki/Body_mass_index)
+- created a separate categorical column for average glucose level and age
+
+
+```{r data_cleaning, include=FALSE}
+
+stroke_df = subset(stroke_df, select = -c(id))
+
+# converting the numeric variables to factor variables
+stroke_df$gender = as.factor(stroke_df$gender)
+stroke_df$hypertension = as.factor(stroke_df$hypertension)
+stroke_df$heart_disease = as.factor(stroke_df$heart_disease)
+stroke_df$ever_married = as.factor(stroke_df$ever_married)
+stroke_df$bmi = as.numeric(stroke_df$bmi)
+stroke_df$stroke = as.factor(stroke_df$stroke)
+stroke_df$work_type = as.factor(stroke_df$work_type)
+stroke_df$Residence_type = as.factor(stroke_df$Residence_type)
+stroke_df$smoking_status = as.factor(stroke_df$smoking_status)
+
+# To get the summary statistics of the dataset
+summary(stroke_df)
+
+```
+
+
+```{r find_na_fix, include=FALSE}
+
+# To find the NA's in the dataset
+paste("The NA's in the dataset is:",sum(is.na(stroke_df)))
+
+```
+
+
+```{r na_fix, include=FALSE}
+
+# Replacing NA values with average BMI value
+stroke_df$bmi[is.na(stroke_df$bmi)] = mean(stroke_df$bmi,na.rm = TRUE)
+paste("The NA's in the dataset after imputation of BMI with mean is:",sum(is.na(stroke_df)))
+```
+
+```{r summary_after_cleaning, include=TRUE}
+# since we had only 1 data point in others category for gender we are removing it
+stroke_df = subset(stroke_df,gender!="Other")
+summary(stroke_df)
+```
+
+# Exploratory Data Analysis 
+
+```{r subsets, include=FALSE}
+
+# subsetting the data for various analyses 
+stroke_1 = subset(stroke_df, stroke == 1)
+stroke_0 = subset(stroke_df, stroke == 0)
+stroke_1_female = subset(stroke_df, stroke == 1 & gender == "Female")
+stroke_1_male = subset(stroke_df, stroke == 1 & gender == "Male")
+
+# creating different columns for bmi, age and average_glucose_level based on different bucketing for each variables
+dat <- within(stroke_df, {   
+  bmi.cat = NA # need to initialize variable
+  bmi.cat[bmi < 18.5] = "underweight"
+  bmi.cat[bmi >= 18.5 & bmi < 25] = "normal"
+  bmi.cat[bmi >= 25 & bmi < 30] = "overweight"
+  bmi.cat[bmi >= 30 & bmi < 40] = "obesity"
+  bmi.cat[bmi >=40] = "severe obesity" 
+  avg_gluc.cat = NA # need to initialize variable
+  avg_gluc.cat[avg_glucose_level < 60] = "Below 60"
+  avg_gluc.cat[avg_glucose_level >= 60 & avg_glucose_level < 90] = "60 - 90"
+  avg_gluc.cat[avg_glucose_level >= 90 & avg_glucose_level < 120] = "90 - 120"
+  avg_gluc.cat[avg_glucose_level >= 120 & avg_glucose_level < 180] = "120 - 180"
+  avg_gluc.cat[avg_glucose_level >= 180 & avg_glucose_level < 273] = "180 - 273"
+  age.cat = NA
+  age.cat[age<=20] = "Under 20"
+  age.cat[age>=21 & age<= 40 ] = "20-40"
+  age.cat[age>=41 & age<= 60 ] = "40-60"
+  age.cat[age>=61 & age<= 80 ] = "60-80"
+  age.cat[age>=80 ] = "above 80"
+   } )
+
+dat$bmi.cat<- factor(dat$bmi.cat,levels= c("underweight","normal","overweight","obesity","severe obesity" ))
+dat$avg_gluc.cat<- factor(dat$avg_gluc.cat,levels= c("Below 60","60 - 90","90 - 120","120 - 180","180 - 273" ))
+dat$age.cat<- factor(dat$age.cat,levels= c("Under 20","20-40","40-60","60-80","above 80"))
+dat$avg_gluc.cat = as.numeric(factor(dat$avg_gluc.cat))
+dat$bmi.cat = as.numeric(factor(dat$bmi.cat))
+dat$age.cat = as.numeric(factor(dat$age.cat))
+dat$avg_gluc.cat = factor(dat$avg_gluc.cat)
+dat$bmi.cat = factor(dat$bmi.cat)
+dat$age.cat = factor(dat$age.cat)
+str(dat)
+```
+
+## Distribution of the numerical variables
+
+
+```{r numerical_variable_dist, include=TRUE}
+
+# Distribution of
+ggplot(stroke_df, aes(x=age)) +  geom_density(fill="skyblue", color="skyblue", alpha=0.5)+ theme_bw() + theme()+ ggtitle("Distribution for age")
+
+#Distribution of BMI
+
+ggplot(stroke_df, aes(x=bmi)) +  geom_density(fill="pink", color="pink", alpha=0.5)+ theme_bw() + theme()+ ggtitle("Distribution for BMI")
+
+#Distribution of Glucose level
+ggplot(stroke_df, aes(x=avg_glucose_level)) +  geom_density(fill="lightgreen", color="lightgreen", alpha=0.5)+ theme_bw() + theme()+ ggtitle("Distribution for Average Glucose Level")
+
+```
+
+## Distribution of Stroke (Target variable)
+
+```{r target_var, include=TRUE}
+
+#Distribution of Target variable - stroke
+
+ggplot(stroke_df, aes(x=stroke,fill=stroke))+geom_bar()+ggtitle("Distribution of Target variable (Stroke)")+ theme_bw() + theme()+ xlab("Stroke") + ylab("Count of people")
+
+```
+
+
+
+```{r job_smoking, include=TRUE}
+#Distribution of smoking status vs worktype for stroke affected people.
+
+ggplot(stroke_1,aes(x=work_type, fill= smoking_status))+geom_bar(position = "dodge")+ggtitle("Distribution of people who had a stroke based on their smoking habits")+ theme_bw() + theme()+ xlab("Work Type") + ylab("Count of people ")
+```
+
+
+
+```{r gender_job_smoking, include=TRUE}
+#Distribution of Smoking status for stroke affected males
+
+ggplot(stroke_1_female,aes(x=work_type, fill= smoking_status))+geom_bar(position = "dodge")+ggtitle("Distribution of females who had a stroke based on their smoking habits")+ theme_bw() + theme()+ xlab("Work Type") + ylab("Count of people ")
+ggplot(stroke_1_male,aes(x=work_type, fill= smoking_status))+geom_bar(position = "dodge")+ggtitle("Distribution of males who had a stroke based on their smoking habits")+ theme_bw() + theme()+ xlab("Work Type") + ylab("Count of people ")
+```
+
+
+```{r age_stroke_1, include=TRUE}
+
+# Distribution of age for stroke affected people.
+ggplot(stroke_1, aes(x = age, fill=stroke))+ geom_density(alpha = 0.3)+ ggtitle("Density plot for age of people who had stroke")+ theme_bw() + theme()
+
+```
+
+
+```{r age_bmi, include=TRUE}
+
+# Plot for age vs bmi for stroke affected people
+ggplot(stroke_1, aes(x=bmi, y=age, color=stroke))+geom_point(size=3)+ ggtitle("Scatter plot for age vs bmi for people who had a stroke")
+
+```
+
+
+
+```{r age_bmi.cat, include=TRUE}
+
+#Distribution of BMI categorical vs Age for stroke 
+ggplot(dat, aes(x=bmi.cat,y = age, fill=stroke))+geom_boxplot()+ ggtitle("Boxplot for Age vs BMI(categorical)")
+
+```
+
+Since the previous scatter plot provided a rough estimate of where the majority of the strokes occurred. We decided to divide these BMI into different categories based on the information provided by [Wikipedia](https://en.wikipedia.org/wiki/Body_mass_index)
+
+The categories are encoded as:
+
+- Underweight - BMI < 18.5
+- Normal - BMI >= 18.5 and BMI <= 25
+- Overweight - BMI >= 25.0 and BMI <= 30
+- Obesity - BMI >= 30.0 and BMI < 40
+- "Extreme" or Severe Obesity - BMI >= 40 
+
+```{r age_avg_glucose, include=TRUE}
+
+# Boxplot for age vs Glucose average level for stroke affected people
+stroke_1_dat = subset(dat, stroke==1 )
+ggplot(stroke_1_dat, aes(fill=avg_gluc.cat, y = age, x = avg_gluc.cat))+ geom_boxplot()+ ggtitle("Boxplot for Age vs Average Gluclose level(Categorical) for people with stroke")
+
+```
+
+
+
+
+```{r age_hypertension, include=TRUE}
+ggplot(data = stroke_df, aes(x=as.character(hypertension), y=age, fill=hypertension)) +
+    geom_boxplot() +
+    labs(title="Age distribution by hypertension", x="hypertension", y="age")
+```
+
+
+
+```{r age_heart_disease, include=TRUE}
+
+# Plot of heart disease vs age - Stroke Affected People
+
+ggplot(data = stroke_df, aes(x=as.character(heart_disease ), y=age, fill=heart_disease)) +
+    geom_boxplot() +
+    labs(title="Age distribution by heart_disease ", x="heart_disease ", y="age")
+
+```
+
+
+```{r}
+#Distribution of Residence type for stroke affected people
+
+ggplot(stroke_1_dat, aes(x=Residence_type,fill=Residence_type))+geom_bar(position = "dodge")+ggtitle("People Having stroke in Urban and Rural Area (People Affected by stroke)")+ theme_bw() +theme()+ xlab("Residence Type") + ylab("Number of people")
+
+```
+
+```{r}
+
+# Plot of Worktype of people in rural and Urban who are affected by stroke.
+
+ggplot(stroke_1_dat,aes(x=Residence_type,fill=work_type))+geom_bar(position="dodge")+ggtitle("Work Type of Rural and Urban - People who are affected by stroke ")+theme()+theme_bw()+ylab("No of people")
+
+```
+
+
+
+```{r}
+
+# plot of Smoking status of Rural and Urban who are affected by stroke.
+
+ggplot(stroke_1_dat,aes(x=Residence_type,fill=smoking_status))+geom_bar(position="dodge")+ggtitle("Smoking habit of Rural and Urban - People who are affected by stroke ")+theme()+theme_bw()+ylab("No of people")
+
+```
+
+
+
+# Modeling 
+
+## Using the under and over sampling method (both)
+
+```{r}
+set.seed(80)
+# In the train data we are using under and oversampling to address the class imbalance problem
+ind <- sample(2, nrow(stroke_df), replace = TRUE, prob = c(0.7, 0.3))
+train <- stroke_df[ind==1,]
+test <- stroke_df[ind==2,]
+
+#Dimension
+dim(train)
+dim(test)
+
+train <- ovun.sample(stroke~., data=train, method = "both",p = 0.5,seed = 222)$data
+
+r<-table(train$stroke)
+paste("Seeing if the class imabalance is fixed")
+r
+str(test)
+```
+
+
+Feature Selection
+
+```{r}
+#Random forest
+clf = randomForest(x = train[-11],
+                             y = train$stroke,
+                             ntree = 500)
+
+# Predicting the Test set results
+y_pred = predict(clf, newdata = test[-11])
+
+# Confusion Matrix
+confusion = table(test$stroke, y_pred)
+varImpPlot(clf)
+
+```
+
+```{r}
+#Distribution of stroke after using balancing technique
+ggplot(train, aes(x=stroke,fill=stroke))+geom_bar()+ggtitle("Distribution of Target variable (Stroke) after balancing using ")+ theme_bw() + theme()+ xlab("Stroke") + ylab("Count of people")
+```
+
+
+```{r}
+str(test)
+```
+
+
+
+### Logistic Regression 
+
+
+
+```{r}
+
+set.seed(123)
+
+#logistic regression
+
+logit  <- glm(stroke ~., family=binomial (link="logit"), data=train)
+predlogit <- predict(logit, newdata=test[-11], type="response")
+
+# prediction 
+pred = ifelse(predlogit>=0.5,1,0)
+pred = as.factor(pred)
+# Eval Metric
+confusion1= confusionMatrix(pred,test$stroke,mode= "everything")
+confusion1
+
+# AUC - ROC curve 
+test_prob = predict(logit, test[-11], type = "response")
+test_roc = roc(test$stroke ~ test_prob, plot = TRUE, print.auc = TRUE)
+test_roc
+```
+
+
+#### Logistic Regression with feature selected variables 
+
+
+```{r}
+
+set.seed(1234)
+# selecting the features based on the feature selection done above
+train_fe = subset(train, select = c(age,avg_glucose_level,work_type,hypertension,smoking_status,bmi,stroke))
+test_fe = subset(test, select = c(age,avg_glucose_level,work_type,hypertension,smoking_status,bmi,stroke))
+str(train_fe[-7])
+
+```
+
+
+```{r}
+# logistic regression model
+
+logit  <- glm(stroke ~., family=binomial (link="logit"), data=train_fe)
+
+# prediction 
+
+predlogit <- predict(logit, newdata=test_fe[-7], type="response")
+pred = ifelse(predlogit>=0.5,1,0)
+pred = as.factor(pred)
+
+# Evaluation Metric
+
+confusion1= confusionMatrix(pred,test_fe$stroke,mode= "everything")
+confusion1
+
+# AUC-ROC curve
+
+test_prob = predict(logit, test_fe[-7], type = "response")
+test_roc = roc(test_fe$stroke ~ test_prob, plot = TRUE, print.auc = TRUE)
+test_roc
+```
+
+
+### Decision Tree
+
+```{r}
+# decision tree fitting 
+
+fit <- rpart(stroke~ ., data = train , method = 'class')
+rpart.plot(fit, extra = 106)
+```
+```{r}
+
+# prediction 
+
+predict_unseen <-predict(fit, test[-11], type = 'class')
+
+# Evaluation Metric
+
+confusion1= confusionMatrix(predict_unseen,test$stroke,mode= "everything")
+confusion1
+
+# AUC-ROC curve
+
+prob=predict(fit,test[-11],type="prob")
+ROC_rf <- roc(test$stroke, prob[,2])
+plot(ROC_rf)
+paste("Area under curve of Decision Tree: ", auc(ROC_rf))
+
+```
+
+#### Decision Tree with feature selection
+
+```{r}
+# decision tree fit
+
+fit <- rpart(stroke~ ., data = train_fe , method = 'class')
+rpart.plot(fit, extra = 106)
+```
+
+
+```{r}
+# Prediction
+
+predict_unseen <-predict(fit, test_fe[-7], type = 'class')
+
+# Evaluation Metric
+
+confusion1= confusionMatrix(predict_unseen,test_fe$stroke,mode= "everything")
+confusion1
+
+# AUC-ROC curve
+
+prob=predict(fit,test_fe[-7],type="prob")
+ROC_rf <- roc(test_fe$stroke, prob[,2])
+plot(ROC_rf)
+paste("Area under curve of Decision Tree: ", auc(ROC_rf))
+```
+
+### Tuned decision tree
+
+```{r}
+# parameter setting for decision tree
+control <- rpart.control(minsplit = 5,
+    minbucket = round(5 / 3),
+    maxdepth = 6,
+    cp = 0)
+
+# fitting the model
+tune_fit <- rpart(stroke~., data = train , method = 'class', control = control)
+rpart.plot(tune_fit, extra = 106)
+```
+
+```{r}
+
+# Prediction
+
+predict_unseen1 <-predict(tune_fit, test[-11], type = 'class')
+
+# Evaluation Metric
+
+confusion1= confusionMatrix(predict_unseen1,test$stroke,mode= "everything")
+confusion1
+
+# AUC-ROC curve
+
+prob=predict(tune_fit,test[-11],type="prob")
+ROC_rf <- roc(test$stroke, prob[,2])
+plot(ROC_rf)
+paste("Area under curve of Decision Tree: ", auc(ROC_rf))
+```
+
+
+#### tuned decision tree with feature selection 
+
+```{r}
+# setting the parameters for the tree
+control <- rpart.control(minsplit = 5,
+    minbucket = round(5 / 3),
+    maxdepth = 6,
+    cp = 0)
+
+# fitting the model
+tune_fit <- rpart(stroke~., data = train_fe , method = 'class', control = control)
+rpart.plot(tune_fit, extra = 106)
+```
+
+```{r}
+predict_unseen1 <-predict(tune_fit, test_fe[-7], type = 'class')
+
+# Evaluation Metric
+confusion1= confusionMatrix(predict_unseen1,test_fe$stroke,mode= "everything")
+confusion1
+
+# AUC-ROC curve
+
+prob=predict(tune_fit,test_fe[-7],type="prob")
+ROC_rf <- roc(test_fe$stroke, prob[,2])
+plot(ROC_rf)
+paste("Area under curve of Decision Tree: ", auc(ROC_rf))
+```
+
+### Random Forest 
+
+```{r}
+# Random forest classifier
+classifier_RF = randomForest(x = train[-11],
+                             y = train$stroke,
+                             ntree = 500)
+  
+classifier_RF
+
+```
+
+
+```{r}
+
+# Predicting the Test set results
+y_pred = predict(classifier_RF, newdata = test[-11])
+
+# Evaluation Metric
+
+confusion1= confusionMatrix(y_pred,test$stroke,mode= "everything")
+confusion1
+
+# AUC-ROC curve
+
+prob=predict(classifier_RF,test[-11],type="prob")
+ROC_rf <- roc(test$stroke, prob[,2])
+plot(ROC_rf)
+paste("Area under curve of random forest: ", auc(ROC_rf))
+```
+
+
+#### Random Forest with feature selected variables 
+```{r}
+# Random Forest Classifier 
+classifier_RF1 = randomForest(x = train_fe[-7],
+                             y = train_fe$stroke,
+                             ntree = 500)
+
+classifier_RF1
+
+```
+```{r}
+
+# Predicting the Test set results
+y_pred = predict(classifier_RF1, newdata = test_fe[-7])
+
+# Evaluation Metric
+
+confusion1= confusionMatrix(y_pred,test_fe$stroke,mode= "everything")
+confusion1
+
+# AUC-ROC curve
+
+prob=predict(classifier_RF1,test_fe[-7],type="prob")
+ROC_rf <- roc(test_fe$stroke, prob[,2])
+plot(ROC_rf)
+paste("Area under curve of random forest: ", auc(ROC_rf))
+```
+
+## Using ROSE techinque 
+
+```{r}
+
+set.seed(1234)
+trainIndex = sample(1:nrow(stroke_df), size=round(0.75*nrow(stroke_df)), replace=FALSE)
+train1 <- stroke_df[trainIndex,]
+test1  <- stroke_df[-trainIndex,]
+
+dim(train1)
+dim(test1)
+```
+
+feature selection 1 data 
+```{r}
+
+set.seed(1234)
+train_fe = subset(train1, select = c(age,avg_glucose_level,work_type,hypertension,smoking_status,bmi,stroke))
+test1_fe = subset(test1, select = c(age,avg_glucose_level,work_type,hypertension,smoking_status,bmi,stroke))
+
+str(train_fe)
+dim(test1_fe)
+```
+ 
+with feature selection rose split
+```{r}
+set.seed(1234)
+
+#Fit ROSE 
+trainrose1<-ROSE(stroke~.,data=train_fe)$data
+
+#Plot to check distribution
+ggplot(trainrose1, aes(x=stroke,fill=stroke))+geom_bar()+ggtitle("Distribution of Target varibale (Stroke) after balancing(feature selected variables)")+ theme_bw() +  theme()+ xlab("Stroke") + ylab("Count of people")
+```
+```{r}
+table(trainrose1$stroke)
+```
+
+Without feature selection data
+
+```{r}
+set.seed(1234)
+
+trainrose<-ROSE(stroke~.,data=train1)$data
+
+#Distribution of target variable after ROSE technique
+ggplot(trainrose, aes(x=stroke,fill=stroke))+geom_bar()+ggtitle("Distribution of Target varibale (Stroke) after balancing(all variables)")+ theme_bw() +  theme()+ xlab("Stroke") + ylab("Count of people")
+```
+
+```{r}
+
+trainrose$age = abs(trainrose$age)
+trainrose$avg_glucose_level = abs(trainrose$avg_glucose_level)
+summary(trainrose)
+
+```
+
+
+```{r}
+
+trainrose1$age = abs(trainrose1$age)
+trainrose1$avg_glucose_level = abs(trainrose1$avg_glucose_level)
+summary(trainrose1)
+
+```
+
+```{r}
+table(train_fe$stroke)
+
+table(trainrose1$stroke)
+table(test1_fe$stroke)
+```
+### Logistic Model 
+
+
+```{r}
+
+set.seed(1234)
+# logistic model
+logitrose  <- glm(stroke ~., family=binomial (link="logit"), data=trainrose)
+
+
+# Prediction
+predlogitrose <- predict(logitrose, newdata=test1[-11], type="response")
+pred = ifelse(predlogitrose>=0.5,1,0)
+pred = as.factor(pred)
+
+# Evaluation Metric
+confusion1= confusionMatrix(pred,test1$stroke,mode= "everything")
+confusion1
+
+# AUC-ROC curve
+test_prob = predict(logitrose, test1[-11], type = "response")
+test_roc = roc(test1$stroke ~ test_prob, plot = TRUE, print.auc = TRUE)
+test_roc
+
+```
+
+#### Logistic Model with Feature Selection 
+
+
+```{r}
+set.seed(1234)
+# Logistic Model
+logitrose  <- glm(stroke ~., family=binomial (link="logit"), data=trainrose1)
+
+# Prediction
+predlogitrose <- predict(logitrose, newdata=test1_fe[-7], type="response")
+pred = ifelse(predlogitrose>=0.5,1,0)
+pred = as.factor(pred)
+
+# Evaluation Metric
+confusion1= confusionMatrix(pred,test1_fe$stroke,mode= "everything")
+confusion1
+
+# AUC-ROC curve
+
+test_prob = predict(logitrose, test1_fe[-11], type = "response")
+test_roc = roc(test1_fe$stroke ~ test_prob, plot = TRUE, print.auc = TRUE)
+
+```
+
+
+### Decision Tree
+
+```{r}
+fit <- rpart(stroke~ . , data = trainrose , method = 'class')
+rpart.plot(fit, extra = 106)
+```
+
+
+```{r}
+
+predict_unseen <-predict(fit, test1[-11], type = 'class')
+
+# Evaluation Metric
+confusion1= confusionMatrix(predict_unseen,test1$stroke,mode= "everything")
+confusion1
+
+# AUC-ROC curve
+
+prob=predict(fit,test1[-11],type="prob")
+ROC_rf <- roc(test1$stroke, prob[,2])
+plot(ROC_rf)
+paste("Area under curve of random forest: ", auc(ROC_rf))
+
+```
+#### Decision Tree with Feature Selection
+
+```{r}
+fit <- rpart(stroke~ . , data = trainrose1 , method = 'class')
+rpart.plot(fit, extra = 106)
+```
+
+
+```{r}
+predict_unseen <-predict(fit, test1_fe[-7], type = 'class')
+
+# Evaluation Metric
+
+confusion1= confusionMatrix(predict_unseen,test1_fe$stroke,mode= "everything")
+confusion1
+
+
+# AUC-ROC curve
+
+prob=predict(fit,test1_fe[-7],type="prob")
+ROC_rf <- roc(test1_fe$stroke, prob[,2])
+plot(ROC_rf)
+paste("Area under curve of random forest: ", auc(ROC_rf))
+
+```
+
+### Tuned Decision Tree
+
+```{r}
+
+control <- rpart.control(minsplit = 7,
+    minbucket = round(5 / 3),
+    maxdepth = 4,
+    cp = 0)
+
+tune_fit <- rpart(stroke~., data = trainrose , method = 'class', control = control)
+rpart.plot(tune_fit, extra = 106)
+
+# Prediction
+
+predict_unseen1 <-predict(tune_fit, test1[-11], type = 'class')
+
+# Eval Metric
+confusion1= confusionMatrix(predict_unseen1,test1$stroke,mode= "everything")
+confusion1
+
+# AUC-ROC curve
+
+prob=predict(tune_fit,test1[-11],type="prob")
+ROC_rf <- roc(test1$stroke, prob[,2])
+plot(ROC_rf)
+paste("Area under curve of random forest: ", auc(ROC_rf))
+
+```
+
+#### Tuned Decision Tree with Feature Selection 
+
+```{r}
+
+control <- rpart.control(minsplit = 7,
+    minbucket = round(5 / 3),
+    maxdepth = 4,
+    cp = 0)
+
+tune_fit <- rpart(stroke~., data = trainrose1 , method = 'class', control = control)
+rpart.plot(tune_fit, extra = 106)
+
+# prediction
+predict_unseen1 <-predict(tune_fit, test1_fe[-7], type = 'class')
+
+# Evaluation Metric
+confusion1= confusionMatrix(predict_unseen,test1_fe$stroke,mode= "everything")
+confusion1
+
+# AUC-ROC curve
+
+prob=predict(tune_fit,test1_fe[-7],type="prob")
+ROC_rf <- roc(test1_fe$stroke, prob[,2])
+plot(ROC_rf)
+paste("Area under curve of random forest: ", auc(ROC_rf))
+
+```
+### Random Forest 
+
+```{r}
+#Random forest
+classifier_RF = randomForest(x = trainrose[-11],
+                             y = trainrose$stroke,
+                             ntree = 500)
+  
+classifier_RF
+```
+
+```{r,include=T}
+
+# Predicting the Test set results
+y_pred = predict(classifier_RF, newdata = test1[-11])
+
+# Evaluation Metric
+confusion1= confusionMatrix(y_pred,test1$stroke,mode= "everything")
+confusion1
+
+# AUC-ROC curve
+
+prob=predict(classifier_RF,test1[-11],type="prob")
+ROC_rf <- roc(test1$stroke, prob[,2])
+plot(ROC_rf)
+paste("Area under curve of random forest: ", auc(ROC_rf))
+
+```
+
+#### Random Forest with Feature Selection 
+
+```{r}
+#Random Forest
+classifier_RF = randomForest(x = trainrose1[-7],
+                             y = trainrose1$stroke,
+                             ntree = 500)
+  
+classifier_RF
+```
+
+```{r,include=T}
+# Predicting the Test set results
+y_pred = predict(classifier_RF, newdata = test1_fe[-7])
+
+# Evaluation Metric
+
+confusion1= confusionMatrix(y_pred,test1_fe$stroke,mode= "everything")
+confusion1
+
+# AUC-ROC curve
+
+prob=predict(classifier_RF,test1_fe[-7],type="prob")
+ROC_rf <- roc(test1_fe$stroke, prob[,2])
+plot(ROC_rf)
+paste("Area under curve of random forest: ", auc(ROC_rf))
+
+```
+
+
+
+
+
